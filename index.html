@@ -6194,9 +6194,11 @@ const REVIEW = [
   function syncCode() {
     try {
       const m = location.hash.match(/sync=([A-Za-z0-9]{20,40})/);
-      if (m) { localStorage.setItem('spt-sync', m[1]); history.replaceState(null, '', location.pathname + location.search); }
+      if (m) localStorage.setItem('spt-sync', m[1]);
       let c = localStorage.getItem('spt-sync');
       if (!c) { c = rand(24); localStorage.setItem('spt-sync', c); }
+      // код держим в адресе: иконка «На экран Домой» (у неё своё хранилище на iPhone) заберёт его с собой
+      if (!m || m[1] !== c) history.replaceState(null, '', location.pathname + location.search + '#sync=' + c);
       return c;
     } catch (e) { return null; }
   }
