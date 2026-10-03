@@ -162,6 +162,7 @@ input[type=text], input[type=search] { flex: 1 1 260px; min-width: 0; font: 17px
 .tlist { list-style: none; margin: 0; padding: 0; }
 .tlist li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
 .tlist b { font: 600 14px var(--mono); }
+.tlist .tsum { border-bottom: 0; font-weight: 600; }
 @media (max-width: 520px) { .bar small { font-size: 8px; } .bars { gap: 2px; } }
 .weak .dots { color: var(--ok); letter-spacing: 2px; }
 .weaknote { display: block; color: var(--ok); font-weight: 600; margin-top: 4px; }
@@ -181,11 +182,15 @@ i.cl { background: var(--line); } i.cx { background: transparent; }
 @media (max-width: 640px) { .vrow { grid-template-columns: 1fr repeat(6, auto); gap: 5px; } .vrow i { width: 7px; height: 7px; } .vt { gap: 2px; } .vn small { display: none; } .vhead .vt { font-size: 0; } }
 .syncbox { display: grid; gap: 10px; }
 .syncbox input { width: 100%; font: 14px var(--mono); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+.synccode { display: grid; gap: 4px; justify-items: start; background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; padding: 14px 18px; }
+.synccode span { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.synccode b { font: 700 34px var(--mono); letter-spacing: .08em; color: var(--accent); }
+.synccode small { color: var(--muted); font-size: 13px; }
 .qr { background: #fff; padding: 10px; border-radius: 10px; justify-self: start; } .qr:empty { display: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 <div class="app">
-  <header class="top"><h1>Испанский <span>по плейлистам</span></h1><div class="topr"><button id="clock" class="clock" type="button" aria-label="Время занятий сегодня"><i></i><span>Сегодня</span> <b>0:00</b></button><div id="sync">Прогресс хранится в этом браузере</div></div></header>
+  <header class="top"><h1>Испанский <span>по плейлистам</span></h1><div class="topr"><button id="clock" class="clock" type="button" aria-label="Время занятий сегодня"><i></i><span>Сегодня, все устройства</span> <b>0:00</b></button><div id="sync">Прогресс хранится в этом браузере</div></div></header>
   <aside><p class="label">Уровни</p><nav id="levels" aria-label="Уровни курса"></nav></aside>
   <main id="main"><p class="hint">Загружаю курс…</p></main>
 </div>
@@ -6208,8 +6213,8 @@ const REVIEW = [
     const dec = d => { try { return JSON.parse(d.fields.data.stringValue); } catch (e) { return undefined; } };
     const snap = (id, body) => ({ id, exists: body !== undefined, data: () => body, metadata: {} });
     const fail = () => { throw { code: 'unavailable' }; };
-    const poll = fn => {
-      fn(); const t = setInterval(() => { if (document.visibilityState === 'visible') fn(); }, 20000);
+    const poll = (fn, ms) => {
+      fn(); const t = setInterval(() => { if (document.visibilityState === 'visible') fn(); }, ms || 20000);
       const v = () => { if (document.visibilityState === 'visible') fn(); };
       document.addEventListener('visibilitychange', v); window.addEventListener('focus', v);
       return () => { clearInterval(t); document.removeEventListener('visibilitychange', v); window.removeEventListener('focus', v); };
@@ -6232,7 +6237,7 @@ const REVIEW = [
             const j = await r.json(); const docs = (j.documents || []).map(d => snap(d.name.split('/').pop(), dec(d)));
             return { docs, size: docs.length, empty: !docs.length };
           },
-          onSnapshot(cb, err) { return poll(() => ref.get().then(cb, err || (() => {}))); },
+          onSnapshot(cb, err) { return poll(() => ref.get().then(cb, err || (() => {})), 10000); },
         };
         return ref;
       },
@@ -6274,10 +6279,11 @@ const REVIEW = [
   try { const t = JSON.parse(localStorage.getItem(TLS) || 'null'); if (t && t.days) time = t; } catch (e) {}
   let DEV = null;
   try { DEV = localStorage.getItem('spt-dev'); if (!DEV) { DEV = Math.random().toString(36).slice(2, 10); localStorage.setItem('spt-dev', DEV); } } catch (e) { DEV = Math.random().toString(36).slice(2, 10); }
-  const otherDays = new Map(); // docId -> days других устройств (и старый общий stats/time)
+  const otherDays = new Map(); // docId -> { days, name } других устройств
+  const DEV_NAME = (() => { const u = navigator.userAgent; return /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : 'Устройство'; })();
   function allDays() {
     const o = {}; for (const k in time.days) o[k] = time.days[k];
-    otherDays.forEach(d => { for (const k in d) o[k] = (o[k] || 0) + (d[k] || 0); });
+    otherDays.forEach(x => { const d = x.days || {}; for (const k in d) o[k] = (o[k] || 0) + (d[k] || 0); });
     return o;
   }
   const pad = n => String(n).padStart(2, '0');
@@ -6302,7 +6308,7 @@ const REVIEW = [
     if (!timeDirty) return; timeDirty = false;
     const days = {}; for (const k in time.days) days[k] = Math.round(time.days[k]);
     try { localStorage.setItem(TLS, JSON.stringify(time)); } catch (e) {}
-    if (db) timeSaving = timeSaving.then(() => db.doc('stats/t_' + DEV).set({ days })).catch(() => {});
+    if (db) timeSaving = timeSaving.then(() => db.doc('stats/t_' + DEV).set({ days, name: DEV_NAME })).catch(() => {});
   }
   async function initTimeDb() {
     if (!db) return;
@@ -6313,8 +6319,8 @@ const REVIEW = [
       saveTime();
       db.collection('stats').onSnapshot(qs => {
         otherDays.clear();
-        qs.docs.forEach(d => { if (d.id !== 't_' + DEV && d.exists) otherDays.set(d.id, (d.data() || {}).days || {}); });
-        drawClock(Date.now());
+        qs.docs.forEach(d => { if (d.id !== 't_' + DEV && d.exists) { const x = d.data() || {}; otherDays.set(d.id, { days: x.days || {}, name: x.name || 'Другое устройство' }); } });
+        drawClock(Date.now()); if (view === 'time') renderTime();
       }, () => {});
     } catch (e) {}
   }
@@ -6346,7 +6352,7 @@ const REVIEW = [
     if (view === 'time') { const p = periods(now); for (const k in p) { const n = $('#t-' + k); if (n) n.textContent = fmt(p[k], k === 'today'); } }
   }
   setInterval(tick, 1000);
-  setInterval(saveTime, 30000);
+  setInterval(saveTime, 10000);
   document.addEventListener('visibilitychange', () => { lastTick = Date.now(); if (document.visibilityState === 'hidden') saveTime(); else mark(); });
   window.addEventListener('focus', () => { lastTick = Date.now(); mark(); });
   window.addEventListener('blur', saveTime);
@@ -6360,6 +6366,15 @@ const REVIEW = [
       el('p', { class: 'hint' }, 'Время суммируется со всех ваших устройств. Таймер останавливается, когда страница свёрнута или вы на другой вкладке, а также если нет ни нажатий, ни прокрутки: 30 секунд в контрольных и 2 минуты на чтении теории. Неделя считается с понедельника.'));
     main.append(el('div', { class: 'tstats' }, [['today', 'Сегодня'], ['week', 'Эта неделя'], ['month', 'Этот месяц'], ['total', 'Всего']].map(([k, n]) =>
       el('div', { class: 'tcard' }, el('span', null, n), el('b', { id: 't-' + k }, fmt(p[k], k === 'today'))))));
+    // сегодня по устройствам
+    if (db) {
+      const tk = dayKey(new Date(now));
+      const rows = [[DEV_NAME + ' (это устройство)', time.days[tk] || 0]];
+      otherDays.forEach(x => rows.push([x.name, (x.days || {})[tk] || 0]));
+      main.append(el('section', { class: 'block' }, el('h3', null, 'Сегодня по устройствам'),
+        el('ul', { class: 'tlist' }, rows.map(([n, v]) => el('li', null, el('span', null, n), el('b', null, fmt(v, true)))),
+          el('li', { class: 'tsum' }, el('span', null, 'Всего за сегодня'), el('b', null, fmt(p.today, true))))));
+    }
     // последние 30 дней
     const d0 = new Date(now); d0.setHours(0, 0, 0, 0);
     const days = []; for (let i = 29; i >= 0; i--) { const d = new Date(d0); d.setDate(d0.getDate() - i); days.push(d); }
@@ -6995,6 +7010,7 @@ const REVIEW = [
     const qr = el('div', { class: 'qr' });
     const code = el('input', { type: 'text', placeholder: 'Код с другого устройства', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
     main.append(el('button', { class: 'ghost back', type: 'button', onclick: renderHome }, '← Карта курса'), el('h2', null, 'Синхронизация устройств'),
+      el('div', { class: 'synccode' }, el('span', null, 'Код синхронизации'), el('b', null, db.code.slice(0, 6)), el('small', null, 'На всех ваших устройствах первые 6 символов должны совпадать')),
       el('p', { class: 'hint' }, 'Прогресс, ошибки, сетка форм и время занятий общие на всех устройствах с одним кодом. Чтобы подключить телефон, откройте на нём эту ссылку (или отсканируйте QR-код камерой), а потом добавьте страницу на экран «Домой».'),
       el('section', { class: 'card syncbox' }, el('h3', null, 'Ссылка для другого устройства'), inp, el('div', { class: 'row' }, copyBtn), qr,
         el('p', { class: 'hint' }, 'Код этого устройства: ', el('b', null, db.code), '. Не публикуйте ссылку: у кого она есть, тот видит и меняет ваш прогресс.')),
