@@ -1,4 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Испанский">
+<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b";</script>
 <title>Испанский по плейлистам</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -178,6 +179,9 @@ i.c0 { border: 1.5px solid var(--muted); } i.c1 { background: var(--warn); } i.c
 i.cl { background: var(--line); } i.cx { background: transparent; }
 .vbox { padding: 8px 0 14px; border-bottom: 1px solid var(--line); }
 @media (max-width: 640px) { .vrow { grid-template-columns: 1fr repeat(6, auto); gap: 5px; } .vrow i { width: 7px; height: 7px; } .vt { gap: 2px; } .vn small { display: none; } .vhead .vt { font-size: 0; } }
+.syncbox { display: grid; gap: 10px; }
+.syncbox input { width: 100%; font: 14px var(--mono); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+.qr { background: #fff; padding: 10px; border-radius: 10px; justify-self: start; } .qr:empty { display: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 <div class="app">
@@ -6183,11 +6187,61 @@ const REVIEW = [
     renderNav();
     if (view === 'home') renderHome(); else if (view === 'verbs') renderVerbs(); else if (view === 'errors') renderErrors();
   }
+  // ---------- синхронизация вне claude.ai: Firebase Firestore (REST) по коду синхронизации ----------
+  // Код — 24 случайных символа; одинаковый код на телефоне и компьютере = общий прогресс.
+  const FB_PROJECT = (typeof FIREBASE_PROJECT !== 'undefined') ? FIREBASE_PROJECT : '';
+  const rand = n => { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'; let s = ''; const b = new Uint8Array(n); crypto.getRandomValues(b); b.forEach(x => s += a[x % a.length]); return s; };
+  function syncCode() {
+    try {
+      const m = location.hash.match(/sync=([A-Za-z0-9]{20,40})/);
+      if (m) { localStorage.setItem('spt-sync', m[1]); history.replaceState(null, '', location.pathname + location.search); }
+      let c = localStorage.getItem('spt-sync');
+      if (!c) { c = rand(24); localStorage.setItem('spt-sync', c); }
+      return c;
+    } catch (e) { return null; }
+  }
+  function fireDb(project, code) {
+    const base = 'https://firestore.googleapis.com/v1/projects/' + project + '/databases/(default)/documents/sync/' + code + '/';
+    const enc = o => ({ fields: { data: { stringValue: JSON.stringify(o) } } });
+    const dec = d => { try { return JSON.parse(d.fields.data.stringValue); } catch (e) { return undefined; } };
+    const snap = (id, body) => ({ id, exists: body !== undefined, data: () => body, metadata: {} });
+    const fail = () => { throw { code: 'unavailable' }; };
+    const poll = fn => {
+      fn(); const t = setInterval(() => { if (document.visibilityState === 'visible') fn(); }, 20000);
+      const v = () => { if (document.visibilityState === 'visible') fn(); };
+      document.addEventListener('visibilitychange', v); window.addEventListener('focus', v);
+      return () => { clearInterval(t); document.removeEventListener('visibilitychange', v); window.removeEventListener('focus', v); };
+    };
+    return {
+      code,
+      doc(path) {
+        const id = path.split('/').pop();
+        const ref = {
+          async get() { const r = await fetch(base + path, { cache: 'no-store' }); if (r.status === 404) return snap(id); if (!r.ok) fail(); return snap(id, dec(await r.json())); },
+          async set(o) { const r = await fetch(base + path, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(enc(o)) }); if (!r.ok) fail(); },
+          onSnapshot(cb, err) { return poll(() => ref.get().then(cb, err || (() => {}))); },
+        };
+        return ref;
+      },
+      collection(path) {
+        const ref = {
+          async get() {
+            const r = await fetch(base + path + '?pageSize=300', { cache: 'no-store' }); if (!r.ok) fail();
+            const j = await r.json(); const docs = (j.documents || []).map(d => snap(d.name.split('/').pop(), dec(d)));
+            return { docs, size: docs.length, empty: !docs.length };
+          },
+          onSnapshot(cb, err) { return poll(() => ref.get().then(cb, err || (() => {}))); },
+        };
+        return ref;
+      },
+    };
+  }
   async function initDb() {
     try {
-      if (!window.claude || !window.claude.use) return;
-      db = await window.claude.use('db');
+      if (window.claude && window.claude.use) db = await window.claude.use('db');
+      if (!db && FB_PROJECT) { const c = syncCode(); if (c) db = fireDb(FB_PROJECT, c); }
       if (!db) return;
+      if (db.code && view === 'home') renderHome();
       const snap = await db.doc('progress/main').get();
       const remote = snap.exists ? snap.data() : null;
       const merged = mergeState(state, remote);
@@ -6647,6 +6701,7 @@ const REVIEW = [
       el('button', { class: 'ghost', type: 'button', onclick: renderWords }, 'Все слова курса'),
       el('button', { class: 'ghost', type: 'button', onclick: renderVerbs }, 'Глаголы и формы'),
       el('button', { class: 'ghost', type: 'button', onclick: renderTime }, 'Время занятий'),
+      db && db.code ? el('button', { class: 'ghost', type: 'button', onclick: renderSync }, 'Синхронизация устройств') : null,
       el('button', { class: 'ghost', type: 'button', onclick: renderErrors }, 'Мои ошибки (' + weakList().length + ')')));
   }
 
@@ -6926,6 +6981,32 @@ const REVIEW = [
     };
     q.addEventListener('input', draw); draw();
     main.append(q, list);
+  }
+  function renderSync() {
+    view = 'sync'; window.scrollTo(0, 0);
+    const main = $('#main'); main.innerHTML = '';
+    const link = location.origin + location.pathname + '#sync=' + db.code;
+    const copyBtn = el('button', { class: 'primary', type: 'button', onclick: async () => {
+      try { await navigator.clipboard.writeText(link); copyBtn.textContent = 'Скопировано'; } catch (e) { inp.select(); }
+    } }, 'Скопировать ссылку');
+    const inp = el('input', { type: 'text', readonly: true, value: link, onclick: e => e.target.select() });
+    const qr = el('div', { class: 'qr' });
+    const code = el('input', { type: 'text', placeholder: 'Код с другого устройства', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
+    main.append(el('button', { class: 'ghost back', type: 'button', onclick: renderHome }, '← Карта курса'), el('h2', null, 'Синхронизация устройств'),
+      el('p', { class: 'hint' }, 'Прогресс, ошибки, сетка форм и время занятий общие на всех устройствах с одним кодом. Чтобы подключить телефон, откройте на нём эту ссылку (или отсканируйте QR-код камерой), а потом добавьте страницу на экран «Домой».'),
+      el('section', { class: 'card syncbox' }, el('h3', null, 'Ссылка для другого устройства'), inp, el('div', { class: 'row' }, copyBtn), qr,
+        el('p', { class: 'hint' }, 'Код этого устройства: ', el('b', null, db.code), '. Не публикуйте ссылку: у кого она есть, тот видит и меняет ваш прогресс.')),
+      el('section', { class: 'card syncbox' }, el('h3', null, 'Подключить к прогрессу другого устройства'),
+        el('p', { class: 'hint' }, 'Если прогресс уже есть на другом устройстве, вставьте его код. Прогресс этого устройства сольётся с ним.'),
+        code, el('div', { class: 'row' }, el('button', { class: 'ghost', type: 'button', onclick: () => {
+          const c = code.value.trim(); if (!/^[A-Za-z0-9]{20,40}$/.test(c)) { code.value = ''; code.placeholder = 'Неверный код'; return; }
+          try { localStorage.setItem('spt-sync', c); } catch (e) {}
+          location.reload();
+        } }, 'Подключить'))));
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload = () => { try { new QRCode(qr, { text: link, width: 180, height: 180 }); } catch (e) {} };
+    if (window.QRCode) s.onload(); else document.head.append(s);
   }
   function renderErrors() {
     view = 'errors'; window.scrollTo(0, 0);
