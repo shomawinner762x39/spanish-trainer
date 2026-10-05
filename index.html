@@ -57,6 +57,21 @@ h3 { font: 600 17px/1.3 var(--body); margin: 0 0 10px; }
 .lesson .score { grid-column: 3; grid-row: 1 / 3; align-self: center; font: 600 13px var(--mono); color: var(--ok); }
 .lesson.tT { border-left: 4px solid var(--accent); }
 .lesson.tO, .lesson.tI, .lesson.tF { background: color-mix(in srgb, var(--surface) 88%, var(--lv0)); }
+.lesson.tR { border-left: 4px solid #e0b84a; background: color-mix(in srgb, var(--surface) 85%, #e0b84a); }
+.lesson.tR .num { font-size: 1.3em; }
+.reading { padding: 18px 20px; }
+.rpara { margin: 0 0 18px; }
+.rpara .res { font-size: 1.15rem; line-height: 1.7; margin: 0 0 6px; }
+.rw { cursor: pointer; border-bottom: 1px dotted color-mix(in srgb, currentColor 35%, transparent); }
+.rw:hover, .rw.on { background: color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 3px; }
+.rtools { display: flex; gap: 8px; align-items: center; }
+.rgloss { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 12%, transparent); font-size: .95rem; }
+.rtr { margin: 6px 0 0; opacity: .75; font-style: italic; }
+.rtext { margin: 0 0 12px; }
+.rtext summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+.tfrow { gap: 10px; }
+.prompt.tf small { display: block; opacity: .7; font-size: .8rem; margin-bottom: 6px; }
+button.small { padding: 4px 10px; font-size: .85rem; }
 .lesson.passed .num { color: var(--ok); }
 .lesson.tried .score { color: var(--warn); }
 .lesson.locked, .lesson:disabled { opacity: .45; cursor: not-allowed; }
@@ -652,7 +667,7 @@ const LEVELS = [
 ];
 
 const BLOCK_PATTERN = ['T', 'K', 'T', 'K', 'T', 'K', 'O', 'I', 'I', 'I'];
-const TYPE_NAME = { T: 'Теория', K: 'Контрольная', O: 'Обобщение', I: 'Итоговая по блоку', F: 'Итоговая по уровню' };
+const TYPE_NAME = { T: 'Теория', K: 'Контрольная', O: 'Обобщение', I: 'Итоговая по блоку', F: 'Итоговая по уровню', R: 'Чтение' };
 
 // Полный список 250 уроков
 function buildCourse() {
@@ -7091,6 +7106,61 @@ const REVIEW = [
   ['amar', 'cond', 3, 'Мы бы полюбили жизнь у моря.', 'Amaríamos la vida junto al mar. | Amaríamos la vida cerca del mar.']
 ];
 
+// ---- content_reading.js ----
+// ЧТЕНИЕ — история Пабло (сюжет: tools/reading/STORY.md). Один текст после каждого блока.
+// Текст только из пройденного: слова уроков ≤ конца блока и открытые формы (проверка tools/reading/validate.js).
+// p — абзацы [испанский, русский]; gl — перевод каждого слова при нажатии;
+// tf — верно/неверно [утверждение, true|false]; qa — «Ты — Пабло», ответ по-испански; find — найди фразу в тексте.
+const READING = {};
+function R(start, obj) { READING[start] = Object.assign({ start }, obj); }
+
+R(1, {
+  t: 'Пабло. «Me llamo Pablo»',
+  p: [
+    ['¡Hola! Me llamo Pablo. Soy de Chile. Vivo en Santiago. Hablo español y un poco de inglés.', 'Привет! Меня зовут Пабло. Я из Чили. Я живу в Сантьяго. Я говорю по-испански и немного по-английски.'],
+    ['Trabajo mucho, por la mañana y por la tarde. Por la noche estudio inglés en línea. Necesito tiempo, ¡mucho tiempo!', 'Я много работаю — утром и днём. Вечером я учу английский онлайн. Мне нужно время, много времени!'],
+    ['Me gusta mi ciudad. Por la mañana corro en el parque. Me gustan las montañas. Me gusta la música, pero no me gusta la música fuerte.', 'Мне нравится мой город. Утром я бегаю в парке. Мне нравятся горы. Мне нравится музыка, но мне не нравится громкая музыка.'],
+    ['El sábado no trabajo. Voy al supermercado, luego como en casa. Amo a mi familia.', 'В субботу я не работаю. Я иду в супермаркет, потом обедаю дома. Я люблю свою семью.'],
+    ['Quiero viajar. Me gustaría visitar la costa y nadar en el mar. También quiero ir al lago. Pero hoy no: hoy trabajo. ¡Chao, hasta pronto!', 'Я хочу путешествовать. Мне хотелось бы побывать на побережье и поплавать в море. Ещё я хочу поехать на озеро. Но не сегодня: сегодня я работаю. Пока, до скорого!'],
+  ],
+  gl: {
+    hola: 'привет', me: 'меня, мне', llamo: '(me llamo) меня зовут', pablo: 'Пабло (имя)', soy: 'я есть (кто я, откуда)', de: 'из; (un poco de) немного',
+    chile: 'Чили', vivo: 'я живу', en: 'в, на', santiago: 'Сантьяго', hablo: 'я говорю', español: 'испанский (язык)', y: 'и',
+    un: 'один; (un poco) немного', poco: 'мало; (un poco) немного', inglés: 'английский (язык)', trabajo: 'я работаю', mucho: 'много',
+    por: '(por la mañana) утром, (por la tarde) днём, (por la noche) вечером', la: 'артикль женского рода', mañana: 'утро', tarde: 'вторая половина дня',
+    noche: 'вечер, ночь', estudio: 'я учу, я учусь', línea: '(en línea) онлайн', necesito: 'мне нужно', tiempo: 'время',
+    gusta: '(me gusta) мне нравится', mi: 'мой, моя', ciudad: 'город', corro: 'я бегаю', el: 'артикль мужского рода; (el sábado) в субботу',
+    parque: 'парк', gustan: '(me gustan) мне нравятся', las: 'артикль множественного числа (ж. р.)', montañas: 'горы', música: 'музыка',
+    pero: 'но', no: 'не, нет', fuerte: 'громкий, сильный', sábado: 'суббота', voy: 'я иду, я еду', al: 'в (a + el)', supermercado: 'супермаркет',
+    luego: 'потом', como: 'я ем', casa: 'дом; (en casa) дома', amo: 'я люблю', a: 'предлог (перед человеком: amo a mi familia)', familia: 'семья',
+    quiero: 'я хочу', viajar: 'путешествовать', gustaría: '(me gustaría) мне хотелось бы', visitar: 'посетить, побывать', costa: 'побережье',
+    nadar: 'плавать', mar: 'море', también: 'тоже, также', ir: 'идти, ехать', lago: 'озеро', hoy: 'сегодня', chao: 'пока', hasta: '(hasta pronto) до скорого',
+    pronto: 'скоро',
+  },
+  tf: [
+    ['Пабло живёт в Сантьяго.', true],
+    ['Пабло очень хорошо говорит по-английски.', false],
+    ['Вечером Пабло учит английский онлайн.', true],
+    ['Пабло нравится громкая музыка.', false],
+    ['В субботу Пабло работает.', false],
+    ['Пабло хотелось бы поплавать в море.', true],
+  ],
+  qa: [
+    ['Ты — Пабло. Как тебя зовут?', 'Me llamo Pablo. | Soy Pablo.'],
+    ['Ты — Пабло. Где ты живёшь?', 'Vivo en Santiago. | Vivo en Santiago, Chile. | Vivo en Chile, en Santiago.'],
+    ['Ты — Пабло. На каких языках ты говоришь?', 'Hablo español y un poco de inglés. | Hablo español y inglés.'],
+    ['Ты — Пабло. Что ты делаешь вечером?', 'Por la noche estudio inglés en línea. | Estudio inglés en línea por la noche. | Por la noche estudio inglés. | Estudio inglés en línea.'],
+    ['Ты — Пабло. Что ты делаешь утром в парке?', 'Por la mañana corro en el parque. | Corro en el parque. | Corro en el parque por la mañana.'],
+    ['Ты — Пабло. Куда ты идёшь в субботу?', 'El sábado voy al supermercado. | Voy al supermercado. | Voy al supermercado el sábado.'],
+  ],
+  find: [
+    ['Как в тексте: «Мне нужно время».', 'Necesito tiempo.'],
+    ['Как в тексте: «Мне не нравится громкая музыка».', 'No me gusta la música fuerte.'],
+    ['Как в тексте: «Я люблю свою семью».', 'Amo a mi familia.'],
+    ['Как в тексте: «Мне хотелось бы побывать на побережье».', 'Me gustaría visitar la costa.'],
+  ],
+});
+
 // ---- i18n_en.js ----
 // Английский перевод: русская строка → английская (интерфейс и весь курс). Собирается из переводов агентов.
 const I18N_EN = {
@@ -11820,7 +11890,7 @@ const I18N_EN = {
 "так что, поэтому": "so, therefore",
 "пока, в то время как": "while",
 "тоже не": "neither, not either",
-"потом": "later, then",
+"потом": "then, later",
 "так, настолько": "so, as (+ adjective)",
 "столько, так много": "so much, so many",
 "одинаковый, так же": "the same, equally",
@@ -13555,7 +13625,93 @@ const I18N_EN = {
 "Бензин подорожал на 2,5 %.": "Gasoline went up by 2.5%.",
 "Но мастерская дала нам скидку 10 %.": "But the workshop gave us a 10% discount.",
 "Теперь половина машин — новые.": "Now half of the cars are new.",
-"В следующем месяце расходы будут на 5 % ниже.": "Next month expenses will be 5% lower."
+"В следующем месяце расходы будут на 5 % ниже.": "Next month expenses will be 5% lower.",
+"Пабло. «Me llamo Pablo»": "Pablo. \"Me llamo Pablo\"",
+"Привет! Меня зовут Пабло. Я из Чили. Я живу в Сантьяго. Я говорю по-испански и немного по-английски.": "Hi! My name is Pablo. I'm from Chile. I live in Santiago. I speak Spanish and a little English.",
+"Я много работаю — утром и днём. Вечером я учу английский онлайн. Мне нужно время, много времени!": "I work a lot, in the morning and in the afternoon. In the evening I study English online. I need time, a lot of time!",
+"Мне нравится мой город. Утром я бегаю в парке. Мне нравятся горы. Мне нравится музыка, но мне не нравится громкая музыка.": "I like my city. In the morning I run in the park. I like the mountains. I like music, but I don't like loud music.",
+"В субботу я не работаю. Я иду в супермаркет, потом обедаю дома. Я люблю свою семью.": "On Saturday I don't work. I go to the supermarket, then I eat at home. I love my family.",
+"Я хочу путешествовать. Мне хотелось бы побывать на побережье и поплавать в море. Ещё я хочу поехать на озеро. Но не сегодня: сегодня я работаю. Пока, до скорого!": "I want to travel. I would like to visit the coast and swim in the sea. I also want to go to the lake. But not today: today I'm working. Bye, see you soon!",
+"привет": "hi",
+"меня, мне": "me",
+"(me llamo) меня зовут": "(me llamo) my name is",
+"Пабло (имя)": "Pablo (name)",
+"я есть (кто я, откуда)": "I am (who I am, where I'm from)",
+"из; (un poco de) немного": "from, of; (un poco de) a little",
+"Чили": "Chile",
+"я живу": "I live",
+"в, на": "in, at, on",
+"Сантьяго": "Santiago",
+"я говорю": "I speak",
+"испанский (язык)": "Spanish (language)",
+"и": "and",
+"один; (un poco) немного": "a, one; (un poco) a little",
+"мало; (un poco) немного": "little; (un poco) a little",
+"английский (язык)": "English (language)",
+"я работаю": "I work",
+"(por la mañana) утром, (por la tarde) днём, (por la noche) вечером": "(por la mañana) in the morning, (por la tarde) in the afternoon, (por la noche) in the evening",
+"артикль женского рода": "the (feminine article)",
+"утро": "morning",
+"вторая половина дня": "afternoon",
+"вечер, ночь": "evening, night",
+"я учу, я учусь": "I study",
+"(en línea) онлайн": "(en línea) online",
+"мне нужно": "I need",
+"время": "time",
+"(me gusta) мне нравится": "(me gusta) I like",
+"мой, моя": "my",
+"я бегаю": "I run",
+"артикль мужского рода; (el sábado) в субботу": "the (masculine article); (el sábado) on Saturday",
+"парк": "park",
+"(me gustan) мне нравятся": "(me gustan) I like (plural)",
+"артикль множественного числа (ж. р.)": "the (feminine plural article)",
+"горы": "mountains",
+"музыка": "music",
+"не, нет": "not, no",
+"громкий, сильный": "loud, strong",
+"я иду, я еду": "I go",
+"в (a + el)": "to the (a + el)",
+"я ем": "I eat",
+"дом; (en casa) дома": "house; (en casa) at home",
+"я люблю": "I love",
+"предлог (перед человеком: amo a mi familia)": "preposition (before a person: amo a mi familia)",
+"семья": "family",
+"я хочу": "I want",
+"(me gustaría) мне хотелось бы": "(me gustaría) I would like",
+"посетить, побывать": "to visit",
+"тоже, также": "also, too",
+"пока": "bye",
+"(hasta pronto) до скорого": "(hasta pronto) see you soon",
+"скоро": "soon",
+"Пабло живёт в Сантьяго.": "Pablo lives in Santiago.",
+"Пабло очень хорошо говорит по-английски.": "Pablo speaks English very well.",
+"Вечером Пабло учит английский онлайн.": "In the evening Pablo studies English online.",
+"Пабло нравится громкая музыка.": "Pablo likes loud music.",
+"В субботу Пабло работает.": "Pablo works on Saturday.",
+"Пабло хотелось бы поплавать в море.": "Pablo would like to swim in the sea.",
+"Ты — Пабло. Как тебя зовут?": "You are Pablo. What's your name?",
+"Ты — Пабло. Где ты живёшь?": "You are Pablo. Where do you live?",
+"Ты — Пабло. На каких языках ты говоришь?": "You are Pablo. What languages do you speak?",
+"Ты — Пабло. Что ты делаешь вечером?": "You are Pablo. What do you do in the evening?",
+"Ты — Пабло. Что ты делаешь утром в парке?": "You are Pablo. What do you do in the park in the morning?",
+"Ты — Пабло. Куда ты идёшь в субботу?": "You are Pablo. Where do you go on Saturday?",
+"Как в тексте: «Мне нужно время».": "As in the text: \"I need time.\"",
+"Как в тексте: «Мне не нравится громкая музыка».": "As in the text: \"I don't like loud music.\"",
+"Как в тексте: «Я люблю свою семью».": "As in the text: \"I love my family.\"",
+"Как в тексте: «Мне хотелось бы побывать на побережье».": "As in the text: \"I would like to visit the coast.\"",
+"Чтение": "Reading",
+"Чтение: ": "Reading: ",
+"Текст (открыть, если нужно перечитать)": "Text (open it if you need to reread)",
+"Сначала «верно / неверно», потом ответы по-испански полным предложением.": "First \"true / false\", then answer in Spanish with a full sentence.",
+"Верно или неверно?": "True or false?",
+"Ответ: ": "Answer: ",
+"Чтение пройдено. Следующий блок открыт.": "Reading passed. The next block is open.",
+"Перевод": "Translation",
+"Прочитайте текст. Нажмите на слово — увидите перевод. ▶ — послушать абзац. Перевод абзаца — по кнопке, но сначала попробуйте понять без него.": "Read the text. Tap a word to see its translation. ▶ plays the paragraph. The paragraph translation is behind a button, but try to understand it without it first.",
+"▶ Слушать весь текст": "▶ Listen to the whole text",
+"К заданиям по тексту →": "Go to the text tasks →",
+"Да, верно": "True",
+"Нет, неверно": "False"
 };
 
 // ---- i18n.js ----
@@ -13576,6 +13732,11 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     [t.ex, t.dr, t.st].forEach(a => (a || []).forEach(p => { p[0] = T(p[0]); }));
   });
   REVIEW.forEach(r => { r[3] = T(r[3]); });
+  if (typeof READING !== 'undefined') Object.values(READING).forEach(r => {
+    r.t = T(r.t); r.p.forEach(p => { p[1] = T(p[1]); });
+    for (const k in r.gl) r.gl[k] = T(r.gl[k]);
+    [r.tf, r.qa, r.find].forEach(a => a.forEach(x => { x[0] = T(x[0]); }));
+  });
   LEVELS.forEach(l => { l.title = T(l.title); l.blocks.forEach(b => { b.t = T(b.t); }); });
   for (const k in GLOSS) GLOSS[k] = T(GLOSS[k]);
   for (const k in TYPE_NAME) TYPE_NAME[k] = T(TYPE_NAME[k]);
@@ -13589,6 +13750,11 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   const COURSE = buildCourse();
   const BY_ID = Object.fromEntries(COURSE.map(c => [c.id, c]));
   const PASS = 0.8;
+  // Чтение после блока: id = 1000 + первый урок блока. Без пройденного чтения следующий блок закрыт
+  // (кроме блоков, итоговую которых сдали до появления чтения).
+  const READING_SINCE = Date.parse('2026-10-05T17:00:00Z');
+  if (typeof READING !== 'undefined') Object.values(READING).forEach(r => { const b = BY_ID[r.start]; if (b) BY_ID[1000 + r.start] = { id: 1000 + r.start, type: 'R', level: b.level, block: b.block, start: r.start, reading: r }; });
+  const ORDER = []; COURSE.forEach(c => { ORDER.push(c); if (c.type === 'I' && c.part === 3 && BY_ID[1000 + c.id - 9]) ORDER.push(BY_ID[1000 + c.id - 9]); });
   const $ = s => document.querySelector(s);
   const el = (tag, attrs, ...kids) => {
     const n = document.createElement(tag);
@@ -14207,9 +14373,17 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
 
   // ---------- навигация ----------
   let view = 'home';
-  const isUnlocked = id => state.free || id === 1 || (BY_ID[id] && LEVELS[BY_ID[id].level].numbers && (id - 1) % 50 === 0) || !!(state.done[id - 1] && state.done[id - 1].passed); // «Числа» открыты сразу
+  const passedId = id => !!(state.done[id] && state.done[id].passed);
+  function readingGate(id) { // первый урок блока (и итоговой по уровню) ждёт чтения предыдущего блока
+    if ((id - 1) % 10 !== 0 || (id - 1) % 50 === 0) return true;
+    const r = BY_ID[1000 + id - 10]; if (!r || passedId(r.id)) return true;
+    const end = state.done[id - 1]; return !!(end && end.at && end.at < READING_SINCE);
+  }
+  const isUnlocked = id => state.free || (id >= 1000 ? passedId(BY_ID[id].start + 9)
+    : id === 1 || (BY_ID[id] && LEVELS[BY_ID[id].level].numbers && (id - 1) % 50 === 0) || (passedId(id - 1) && readingGate(id))); // «Числа» открыты сразу
   function status(id) { const d = state.done[id]; return d ? (d.passed ? 'passed' : 'tried') : (isUnlocked(id) ? 'open' : 'locked'); }
   function lessonTitle(item) {
+    if (item.type === 'R') return T('Чтение: ') + item.reading.t;
     if (item.type === 'T') return THEORY[item.id] ? THEORY[item.id].t : T('Теория (готовится)');
     if (item.type === 'K') return T('Контрольная: ') + (THEORY[item.theory] ? THEORY[item.theory].t : '');
     const lv = LEVELS[item.level];
@@ -14217,8 +14391,8 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     if (item.type === 'I') return T('Итоговая по блоку, часть ') + item.part + ': ' + lv.blocks[item.block].t;
     return T('Итоговая по уровню ') + lv.code + T(', часть ') + item.part;
   }
-  const ready = item => item.type === 'T' || item.type === 'K' ? !!THEORY[item.type === 'T' ? item.id : item.theory]
-    : levelTheory(item.level).length > 0 && (item.type === 'F' || blockTheory(item.level, item.block).length > 0);
+  const ready = item => item.type === 'R' || (item.type === 'T' || item.type === 'K' ? !!THEORY[item.type === 'T' ? item.id : item.theory]
+    : levelTheory(item.level).length > 0 && (item.type === 'F' || blockTheory(item.level, item.block).length > 0));
 
   function renderNav() {
     const nav = $('#levels'); nav.innerHTML = '';
@@ -14234,11 +14408,11 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   function renderHome() {
     view = 'home'; window.scrollTo(0, 0);
     const main = $('#main'); main.innerHTML = '';
-    const nextId = COURSE.find(c => !(state.done[c.id] && state.done[c.id].passed) && isUnlocked(c.id));
+    const nextId = ORDER.find(c => !(state.done[c.id] && state.done[c.id].passed) && isUnlocked(c.id) && !(c.type === 'R' && passedId(c.start + 10)));
     if (nextId) {
       const it = nextId;
       main.append(el('section', { class: 'next' },
-        el('div', { class: 'eyebrow' }, T('Урок ') + it.id + ' · ' + TYPE_NAME[it.type] + ' · ' + LEVELS[it.level].code),
+        el('div', { class: 'eyebrow' }, (it.type === 'R' ? '' : T('Урок ') + it.id + ' · ') + TYPE_NAME[it.type] + ' · ' + LEVELS[it.level].code),
         el('h2', null, lessonTitle(it)),
         el('button', { class: 'primary', type: 'button', onclick: () => openLesson(it.id), disabled: !ready(it) }, ready(it) ? T('Продолжить') : T('Урок ещё готовится'))));
     }
@@ -14246,7 +14420,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     main.append(el('div', { class: 'lvhead lv' + curLevel }, el('h2', null, lv.code + ' — ' + lv.title),
       el('p', null, T('Уроки ') + (curLevel * 50 + 1) + '–' + (curLevel * 50 + 50) + T('. Четыре блока по 10 уроков и итоговая контрольная.'))));
     lv.blocks.concat([{ t: T('Итоговая контрольная по уровню') }]).forEach((bl, bi) => {
-      const items = COURSE.filter(c => c.level === curLevel && c.block === bi);
+      const items = ORDER.filter(c => c.level === curLevel && c.block === bi);
       main.append(el('section', { class: 'block' },
         el('h3', null, (bi < 4 ? T('Блок ') + (bi + 1) + '. ' : '') + bl.t),
         el('ol', { class: 'lessons' }, items.map(it => {
@@ -14255,9 +14429,9 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
             class: 'lesson t' + it.type + ' ' + st, type: 'button', disabled: st === 'locked' || !ready(it),
             onclick: () => openLesson(it.id),
           },
-            el('span', { class: 'num' }, it.id),
+            el('span', { class: 'num' }, it.type === 'R' ? '📖' : it.id),
             el('span', { class: 'kind' }, TYPE_NAME[it.type]),
-            el('span', { class: 'name' }, it.type === 'T' || it.type === 'K' ? lessonTitle(it).replace(T('Контрольная: '), '') : (it.type === 'F' ? T('часть ') + it.part : (it.type === 'I' ? T('часть ') + it.part : ''))),
+            el('span', { class: 'name' }, it.type === 'R' ? it.reading.t : it.type === 'T' || it.type === 'K' ? lessonTitle(it).replace(T('Контрольная: '), '') : (it.type === 'F' ? T('часть ') + it.part : (it.type === 'I' ? T('часть ') + it.part : ''))),
             el('span', { class: 'score' }, d && d.best != null ? Math.round(d.best * 100) + '%' : (st === 'passed' ? '✓' : ''))));
         }))));
     });
@@ -14274,7 +14448,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   function header(item) {
     return el('div', { class: 'lhead lv' + item.level },
       el('button', { class: 'ghost back', type: 'button', onclick: () => { stopSpeech(); renderHome(); } }, T('← Карта курса')),
-      el('div', { class: 'eyebrow' }, T('Урок ') + item.id + ' · ' + TYPE_NAME[item.type] + ' · ' + LEVELS[item.level].code + (item.block < 4 ? T(' · блок ') + (item.block + 1) : '')),
+      el('div', { class: 'eyebrow' }, (item.type === 'R' ? '' : T('Урок ') + item.id + ' · ') + TYPE_NAME[item.type] + ' · ' + LEVELS[item.level].code + (item.block < 4 ? T(' · блок ') + (item.block + 1) : '')),
       el('h2', null, lessonTitle(item)));
   }
 
@@ -14283,6 +14457,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     curLevel = item.level; renderNav();
     if (item.type === 'T') return renderTheory(item);
     if (item.type === 'O') return renderSummary(item);
+    if (item.type === 'R') return renderReading(item);
     return runTest(item);
   }
 
@@ -14380,6 +14555,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     let tasks;
     if (item.type === 'W') tasks = weakTasks();
     else if (item.type === 'V') tasks = coverageTasks(reachLesson(), 15, 10, rng(Date.now() % 2147483647), new Set());
+    else if (item.type === 'R') tasks = readingTasks(item, attempt);
     else {
       const base = buildTasks(item, attempt);
       const ex = new Set(base.filter(t => t.kind === 'form').map(t => t.verb + '|' + t.tense + '|' + t.person));
@@ -14396,6 +14572,8 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     const firstTry = {}; let pos = 0, retries = 0; const mistakes = [];
     const bar = el('div', { class: 'progress' }, el('span'));
     const box = el('section', { class: 'card task' });
+    if (item.type === 'R') main.append(el('details', { class: 'rtext' }, el('summary', null, T('Текст (открыть, если нужно перечитать)')), readingText(item.reading)),
+      el('p', { class: 'hint' }, T('Сначала «верно / неверно», потом ответы по-испански полным предложением.')));
     if (LANG === 'en') main.append(el('p', { class: 'hint' }, 'you = tú · you (formal) = usted · you all = ustedes · Spanish subject pronouns are optional.'));
     main.append(bar, box);
     const total = tasks.length;
@@ -14409,8 +14587,9 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
         ? el('div', { class: 'prompt form' }, el('span', { class: 'verb' }, t.verb), el('span', { class: 'gloss' }, glossOf(t.verb)), el('span', { class: 'pers' }, personLabel(t.verb, t.person)), el('span', { class: 'tense' }, Conj.TENSES[t.tense]))
         : t.kind === 'num' ? el('div', { class: 'prompt num' }, el('span', { class: 'big' }, t.ru), el('small', null, T('Напишите словами')))
         : t.kind === 'listen' ? el('div', { class: 'prompt listen' }, el('button', { class: 'ghost', type: 'button', onclick: () => say(t.speak) }, '🔊 ' + T('Ещё раз')), el('small', null, T('Послушайте и запишите цифрами')))
+        : t.kind === 'tf' ? el('div', { class: 'prompt tf' }, el('small', null, T('Верно или неверно?')), t.ru)
         : el('div', { class: 'prompt' }, t.ru);
-      prefetch(t.speak || first(t.es));
+      if (t.kind !== 'tf') prefetch(t.speak || first(t.es));
       if (t.kind === 'listen') setTimeout(() => say(t.speak), 150);
       const inp = el('input', { type: 'text', id: 'ans', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t.kind === 'form' ? T('форма глагола') : T('по-испански…') });
       const res = el('div', { class: 'result', hidden: true });
@@ -14425,30 +14604,36 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
           if (!(t.idx in firstTry)) { // в серию и в счётчик ошибок идёт только первая попытка
             firstTry[t.idx] = okish;
             credit(t, okish);
-            if (okish) { const h = weakHit(t); if (h === 'gone') weakNote = T('Исправлено: 4 верных ответа подряд, задание ушло из ошибок'); else if (h) weakNote = T('Работа над ошибкой: ') + dots(h); }
+            if (t.kind === 'tf') {} else if (okish) { const h = weakHit(t); if (h === 'gone') weakNote = T('Исправлено: 4 верных ответа подряд, задание ушло из ошибок'); else if (h) weakNote = T('Работа над ошибкой: ') + dots(h); }
             else weakMiss(t, item.id);
           }
           res.hidden = false; res.innerHTML = '';
           res.className = 'result ' + c.res;
           res.append(el('div', { class: 'verdict' }, c.res === 'ok' ? T('Верно') : c.res === 'accent' ? T('Верно, но проверьте ударения') : T('Неверно')),
-            el('div', { class: 'es' }, first(t.es), speakBtn(t.speak || first(t.es))));
+            t.kind === 'tf' ? el('div', { class: 'es' }, T('Ответ: ') + tfLabel(t.es)) : el('div', { class: 'es' }, first(t.es), speakBtn(t.speak || first(t.es))));
           if (t.kind === 'listen') res.append(el('small', { class: 'alts' }, t.words));
           if (weakNote) res.append(el('small', { class: 'weaknote' }, weakNote));
-          if (c.res === 'bad' && inp.value.trim()) res.append(el('div', { class: 'yours' }, T('Ваш ответ: ') + inp.value.trim()));
+          if (c.res === 'bad' && inp.value.trim() && t.kind !== 'tf') res.append(el('div', { class: 'yours' }, T('Ваш ответ: ') + inp.value.trim()));
           const alts = t.es.split('|').slice(1).map(s => s.trim()); if (alts.length) res.append(el('small', { class: 'alts' }, T('Также верно: ') + alts.join(' · ')));
           if (!okish) {
-            mistakes.push({ id: W ? t.from : item.id, q: t.kind === 'form' ? t.verb + ' · ' + personLabel(t.verb, t.person) + ' · ' + Conj.TENSES[t.tense] : t.kind === 'listen' ? '🔊 ' + t.words : t.ru, a: first(t.es), g: inp.value.trim(), at: Date.now() });
+            mistakes.push({ id: W ? t.from : item.id, q: t.kind === 'form' ? t.verb + ' · ' + personLabel(t.verb, t.person) + ' · ' + Conj.TENSES[t.tense] : t.kind === 'listen' ? '🔊 ' + t.words : t.ru, a: t.kind === 'tf' ? tfLabel(t.es) : first(t.es), g: t.kind === 'tf' ? tfLabel(inp.value) : inp.value.trim(), at: Date.now() });
             // повтор через несколько заданий, как «эхо» у автора
-            if (retries < total) { queue.splice(Math.min(pos + 4, queue.length), 0, Object.assign({}, t)); retries++; }
+            if (retries < total && t.kind !== 'tf') { queue.splice(Math.min(pos + 4, queue.length), 0, Object.assign({}, t)); retries++; }
           }
-          say(t.speak || first(t.es));
+          if (t.kind !== 'tf') say(t.speak || first(t.es));
+          if (tfRow) { tfRow.remove(); btn.hidden = false; }
           inp.disabled = true; btn.textContent = T('Дальше'); btn.focus();
         } else { pos++; next(); }
       };
       btn.addEventListener('click', go);
+      let tfRow = null;
+      if (t.kind === 'tf') {
+        inp.hidden = true; btn.hidden = true;
+        tfRow = el('div', { class: 'row tfrow' }, [['v', 'Да, верно'], ['f', 'Нет, неверно']].map(([v, l]) => el('button', { class: 'primary', type: 'button', onclick: () => { inp.value = v; go(); } }, T(l))));
+      }
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
-      box.append(el('div', { class: 'counter' }, Math.min(Object.keys(firstTry).length + 1, total) + T(' из ') + total + (t.idx in firstTry ? T(' · повтор') : '')), prompt, inp, accentBar(inp), el('div', { class: 'row' }, btn), res);
-      inp.focus();
+      box.append(el('div', { class: 'counter' }, Math.min(Object.keys(firstTry).length + 1, total) + T(' из ') + total + (t.idx in firstTry ? T(' · повтор') : '')), prompt, inp, t.kind === 'tf' ? tfRow : accentBar(inp), el('div', { class: 'row' }, btn), res);
+      if (t.kind !== 'tf') inp.focus();
     }
     function finish() {
       const vals = Object.values(firstTry); const score = vals.filter(Boolean).length / vals.length;
@@ -14461,7 +14646,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
       box.append(el('div', { class: 'final ' + (passed ? 'pass' : 'fail') },
         el('div', { class: 'big' }, Math.round(score * 100) + '%'),
         el('p', null, item.type === 'V' ? T('Освоено форм: ') + verbStats().done + T(' из ') + verbStats().open + T(' доступных.') : W ? T('Осталось в тренировке ошибок: ') + weakList().length + T('. Задание уходит после 4 верных ответов подряд, поэтому возвращайтесь к тренировке в разные дни.')
-          : passed ? T('Контрольная пройдена. Следующий урок открыт.') : T('Нужно 80% с первой попытки. Повторите теорию, послушайте её фоном и пройдите контрольную ещё раз: фразы будут в другом порядке.')),
+          : passed ? (item.type === 'R' ? T('Чтение пройдено. Следующий блок открыт.') : T('Контрольная пройдена. Следующий урок открыт.')) : T('Нужно 80% с первой попытки. Повторите теорию, послушайте её фоном и пройдите контрольную ещё раз: фразы будут в другом порядке.')),
         mistakes.length ? el('details', null, el('summary', null, T('Ошибки (') + mistakes.length + ')'), el('ul', { class: 'mist' }, mistakes.map(m => el('li', null, el('span', null, T(m.q)), el('b', null, m.a), m.g ? el('s', null, m.g) : null)))) : null,
         W ? el('div', { class: 'row' },
           item.type === 'V' || weakList().length ? el('button', { class: 'primary', type: 'button', onclick: () => runTest(item) }, T('Ещё тренировка')) : null,
@@ -14470,10 +14655,47 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
           el('button', { class: 'ghost', type: 'button', onclick: renderHome }, T('Карта курса'))) :
         el('div', { class: 'row' },
           el('button', { class: 'ghost', type: 'button', onclick: () => runTest(item) }, T('Пройти ещё раз')),
-          passed && BY_ID[item.id + 1] ? el('button', { class: 'primary', type: 'button', onclick: () => openLesson(item.id + 1) }, T('Следующий урок →')) : null,
+          passed && BY_ID[nextAfter(item)] ? el('button', { class: 'primary', type: 'button', onclick: () => openLesson(nextAfter(item)) }, T('Следующий урок →')) : null,
           el('button', { class: 'ghost', type: 'button', onclick: renderHome }, T('Карта курса')))));
     }
     next();
+  }
+  const tfLabel = v => T(v === 'v' ? 'Да, верно' : v === 'f' ? 'Нет, неверно' : '—');
+  // после итоговой по блоку — чтение блока, после чтения — первый урок следующего блока
+  const nextAfter = item => item.type === 'R' ? item.start + 10 : (item.type === 'I' && item.part === 3 && BY_ID[1000 + item.id - 9] ? 1000 + item.id - 9 : item.id + 1);
+  function readingTasks(item, attempt) {
+    const r = item.reading, rr = rng(item.id * 17 + attempt * 5 + 1);
+    return [...shuffle(r.tf.map(x => ({ kind: 'tf', ru: x[0], es: x[1] ? 'v' : 'f', from: item.id })), rr),
+      ...r.qa.map(x => ({ kind: 'tr', ru: x[0], es: x[1], from: item.id })),
+      ...shuffle(r.find.map(x => ({ kind: 'tr', ru: x[0], es: x[1], from: item.id })), rr)];
+  }
+  // текст: нажатие на слово — перевод, ▶ — абзац голосом, перевод абзаца по кнопке
+  function readingText(r) {
+    return el('div', { class: 'rbody' }, r.p.map(([es, ru]) => {
+      const gl = el('div', { class: 'rgloss', hidden: true }), tr = el('p', { class: 'rtr', hidden: true }, ru);
+      const words = [];
+      es.split(/(\s+)/).forEach(ch => {
+        if (!ch.trim()) { words.push(ch); return; }
+        const m = ch.match(/^([¿¡«"]*)(.*?)([.,;:!?»"…]*)$/), w = m[2], g = r.gl[w.toLowerCase()];
+        words.push(m[1], g ? el('span', { class: 'rw', onclick: e => {
+          e.currentTarget.parentNode.querySelectorAll('.rw.on').forEach(x => x.classList.remove('on')); e.currentTarget.classList.add('on');
+          gl.hidden = false; gl.innerHTML = ''; gl.append(el('b', null, w), ' — ' + g);
+        } }, w) : w, m[3]);
+      });
+      return el('div', { class: 'rpara' }, el('p', { class: 'res' }, words),
+        el('div', { class: 'rtools' }, speakBtn(es), el('button', { class: 'ghost small', type: 'button', onclick: () => { tr.hidden = !tr.hidden; } }, T('Перевод'))), gl, tr);
+    }));
+  }
+  function renderReading(item) {
+    view = 'theory'; window.scrollTo(0, 0);
+    const main = $('#main'); main.innerHTML = ''; const r = item.reading;
+    main.append(header(item),
+      el('p', { class: 'hint' }, T('Прочитайте текст. Нажмите на слово — увидите перевод. ▶ — послушать абзац. Перевод абзаца — по кнопке, но сначала попробуйте понять без него.')),
+      el('div', { class: 'row' }, el('button', { class: 'ghost', type: 'button', onclick: () => sayAll(r.p.map(p => p[0])) }, T('▶ Слушать весь текст')),
+        el('button', { class: 'ghost', type: 'button', onclick: stopSpeech }, T('■ Стоп'))),
+      el('section', { class: 'card reading' }, readingText(r)),
+      el('div', { class: 'row' }, el('button', { class: 'primary', type: 'button', onclick: () => { stopSpeech(); runTest(item); } }, T('К заданиям по тексту →'))));
+    r.p.forEach(p => prefetch(p[0]));
   }
   function accentBar(inp) {
     return el('div', { class: 'accents' }, ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü', '¿', '¡'].map(ch => el('button', {
