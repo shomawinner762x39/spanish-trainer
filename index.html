@@ -1,5 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Испанский">
-<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b";</script>
+<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/";</script>
 <title>Испанский по плейлистам</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,7 +10,7 @@
   --bg: #f3f5f4; --surface: #ffffff; --ink: #14201d; --muted: #5d6b67; --line: #dbe2df;
   --accent: #0f8f7e; --accent-ink: #ffffff; --ok: #1f8a4c; --warn: #b7791f; --bad: #c2413b;
   --ok-bg: #e5f4ea; --warn-bg: #fbf1dd; --bad-bg: #fbe7e5;
-  --lv0: #2bb3a3; --lv1: #33a9c9; --lv2: #4f86d9; --lv3: #7a6ae0; --lv4: #b05fd6;
+  --lv0: #2bb3a3; --lv1: #33a9c9; --lv2: #4f86d9; --lv3: #7a6ae0; --lv4: #b05fd6; --lv5: #e08a2e;
   --display: "Unbounded", "Golos Text", system-ui, sans-serif;
   --body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
@@ -38,7 +38,7 @@ aside .label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em
 .lvchip span { font-size: 12px; font-variant-numeric: tabular-nums; }
 .lvchip.on, .lvchip:hover { opacity: 1; }
 .lvchip:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.lv0 { --lv: var(--lv0); } .lv1 { --lv: var(--lv1); } .lv2 { --lv: var(--lv2); } .lv3 { --lv: var(--lv3); } .lv4 { --lv: var(--lv4); }
+.lv0 { --lv: var(--lv0); } .lv1 { --lv: var(--lv1); } .lv2 { --lv: var(--lv2); } .lv3 { --lv: var(--lv3); } .lv4 { --lv: var(--lv4); } .lv5 { --lv: var(--lv5); }
 .lvchip { background: var(--lv); }
 main { min-width: 0; padding-top: 18px; display: flex; flex-direction: column; gap: 18px; }
 h2 { font: 700 24px/1.25 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
@@ -190,6 +190,9 @@ i.cl { background: var(--line); } i.cx { background: transparent; }
 .langsw { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .langsw button { border: 0; background: transparent; color: var(--muted); font: 600 13px var(--body); padding: 6px 12px; cursor: pointer; }
 .langsw button.on { background: var(--accent); color: var(--accent-ink); }
+.prompt.num, .prompt.listen { display: grid; gap: 6px; justify-items: start; }
+.prompt.num .big { font: 700 34px var(--mono); letter-spacing: .02em; }
+.prompt.num small, .prompt.listen small { color: var(--muted); font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 <div class="app">
@@ -425,6 +428,147 @@ i.cl { background: var(--line); } i.cx { background: transparent; }
   else root.Conj = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
+// ---- numbers.js ----
+// Числа по-испански: число → слова (с вариантами), время, даты, проценты, десятичные.
+// Используется в генераторе заданий раздела «Числа» и для проверки ответов.
+(function (root) {
+  const UNITS = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez',
+    'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve', 'veinte',
+    'veintiuno', 'veintidós', 'veintitrés', 'veinticuatro', 'veinticinco', 'veintiséis', 'veintisiete', 'veintiocho', 'veintinueve'];
+  const TENS = { 30: 'treinta', 40: 'cuarenta', 50: 'cincuenta', 60: 'sesenta', 70: 'setenta', 80: 'ochenta', 90: 'noventa' };
+  const HUND = { 1: 'ciento', 2: 'doscientos', 3: 'trescientos', 4: 'cuatrocientos', 5: 'quinientos', 6: 'seiscientos', 7: 'setecientos', 8: 'ochocientos', 9: 'novecientos' };
+
+  // 0–99. apocope: «uno» → «un» (перед существительным, mil, millón); fem: «una»
+  function under100(n, g) {
+    let w;
+    if (n < 30) w = UNITS[n];
+    else { const t = n - n % 10, u = n % 10; w = TENS[t] + (u ? ' y ' + UNITS[u] : ''); }
+    if (g === 'f') w = w.replace(/uno$/, 'una');
+    else if (g === 'a') w = w.replace(/veintiuno$/, 'veintiún').replace(/uno$/, 'un');
+    return w;
+  }
+  // 0–999
+  function under1000(n, g) {
+    if (n < 100) return under100(n, g);
+    if (n === 100) return 'cien';
+    const h = Math.floor(n / 100), r = n % 100;
+    let hw = HUND[h];
+    if (g === 'f') hw = hw.replace(/ientos$/, 'ientas');
+    return hw + (r ? ' ' + under100(r, g) : '');
+  }
+  // g: 'm' — отдельное число (uno), 'a' — перед существительным мужского рода (un), 'f' — женского (una)
+  function toWords(n, g) {
+    g = g || 'm';
+    if (n < 0) return 'menos ' + toWords(-n, g);
+    if (n < 1000) return under1000(n, g);
+    if (n < 1e6) {
+      const th = Math.floor(n / 1000), r = n % 1000;
+      // перед «mil»: un / veintiún; для женского рода допустимо и «veintiuna mil» (doscientas mil personas)
+      const tw = th === 1 ? 'mil' : under1000(th, g === 'f' ? 'f' : 'a') + ' mil';
+      return tw + (r ? ' ' + under1000(r, g) : '');
+    }
+    const m = Math.floor(n / 1e6), r = n % 1e6;
+    const mw = m === 1 ? 'un millón' : toWords(m, 'a') + ' millones';
+    return mw + (r ? ' ' + toWords(r, g) : '');
+  }
+  // перед существительным: «un millón de pesos», но «un millón doscientos mil pesos»
+  function withNoun(n, noun, g) {
+    const w = toWords(n, g || 'a');
+    return w + (n >= 1e6 && n % 1e6 === 0 ? ' de ' : ' ') + noun;
+  }
+  // запись цифрами по-чилийски: 1.250.000
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  // время h:m (24 ч) → варианты ответа
+  const HOUR = h => { h = h % 12; if (h === 0) h = 12; return h === 1 ? 'la una' : 'las ' + toWords(h); };
+  function timeWords(h, m) {
+    const out = [];
+    const base = HOUR(h);
+    if (m === 0) out.push(base, base + ' en punto');
+    else if (m === 15) out.push(base + ' y cuarto', base + ' y quince');
+    else if (m === 30) out.push(base + ' y media', base + ' y treinta');
+    else if (m < 30) out.push(base + ' y ' + toWords(m));
+    else {
+      const nx = HOUR(h + 1), left = 60 - m;
+      out.push(base + ' y ' + toWords(m));
+      out.push(nx + ' menos ' + (left === 15 ? 'cuarto' : toWords(left)));
+      out.push((left === 15 ? 'un cuarto' : toWords(left)) + ' para ' + nx); // по-чилийски: un cuarto para las cuatro
+    }
+    if (m === 15) out.push(base + ' y quince');
+    return [...new Set(out)];
+  }
+  const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function dateWords(d, mo, y) {
+    const day = d === 1 ? ['primero', 'uno'] : [toWords(d)];
+    const tail = ' de ' + MONTHS[mo - 1] + (y ? ' de ' + toWords(y) : '');
+    return day.flatMap(x => ['el ' + x + tail, x + tail]);
+  }
+  function percentWords(p) { return [toWords(p) + ' por ciento']; }
+  function decimalWords(a, b) { return [toWords(a) + ' coma ' + toWords(b)]; }
+
+  // Одно задание по спецификации урока: что показать (disp), варианты ответа словами (alts),
+  // принимаемые записи цифрами для задания на слух (digits) и что произнести (speak).
+  function task(spec, r) {
+    const rnd = (a, b) => a + Math.floor(r() * (b - a + 1));
+    if (spec.type === 'int') {
+      let n = rnd(spec.min, spec.max);
+      if (spec.max >= 10000 && r() < 0.5) n = Math.round(n / 1000) * 1000 || n; // круглые тоже нужны
+      const w = toWords(n);
+      return { disp: fmt(n), alts: [w], digits: [String(n)], speak: w };
+    }
+    if (spec.type === 'money') {
+      const step = spec.step || 1; let n = Math.max(spec.min, Math.round(rnd(spec.min, spec.max) / step) * step);
+      if (n >= 10000 && r() < 0.3) n = n - (n % 1000) + 990 > spec.max ? n : n - (n % 1000) + 990; // цены вида 15.990
+      const w = withNoun(n, 'pesos');
+      return { disp: '$' + fmt(n), alts: [w, toWords(n)], digits: [String(n)], speak: w };
+    }
+    if (spec.type === 'time') {
+      const h = rnd(1, 23), m = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55][rnd(0, 11)];
+      const ws = timeWords(h, m);
+      const pre = w => (w.startsWith('la una') || w.startsWith('un cuarto para la una') || / para la una$/.test(w) ? 'es ' : 'son ') + w;
+      const h12 = h % 12 || 12, mm = String(m).padStart(2, '0');
+      return { disp: h + ':' + mm, alts: [...ws, ...ws.map(pre)], digits: [h12 + ':' + mm, (h12 + 12) % 24 + ':' + mm, String(h12).padStart(2, '0') + ':' + mm], speak: pre(ws[0]) };
+    }
+    if (spec.type === 'date') {
+      const mo = rnd(1, 12), d = rnd(1, [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1]), y = spec.year ? rnd(1990, 2035) : 0;
+      const ws = dateWords(d, mo, y);
+      return { disp: d + '/' + mo + (y ? '/' + y : ''), alts: ws, digits: [d + '/' + mo + (y ? '/' + y : '')], speak: ws[0] };
+    }
+    if (spec.type === 'percent') {
+      const p = [5, 10, 12, 15, 19, 20, 25, 30, 33, 40, 45, 50, 60, 70, 75, 80, 90, 100][rnd(0, 17)];
+      const w = percentWords(p)[0];
+      return { disp: p + ' %', alts: [w], digits: [String(p)], speak: w };
+    }
+    if (spec.type === 'decimal') {
+      const a = rnd(0, 99), b = rnd(1, 9);
+      const w = decimalWords(a, b)[0];
+      return { disp: a + ',' + b, alts: [w], digits: [a + ',' + b], speak: w };
+    }
+    return null;
+  }
+  // нормализация ответа «цифрами» для задания на слух
+  function digitsNorm(s) {
+    s = (s || '').trim().replace(/\s+/g, '').replace(/^\$/, '').replace(/%$/, '').replace(/pesos?$/i, '');
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');   // 1.250.000
+    s = s.replace(/[-.]/g, '/').replace(/^(\d+)\/(\d)$/, '$1,$2');   // 2.5 → 2,5 (одна цифра после точки — десятичная)
+    return s.replace(/^0(\d)/, '$1').replace(/\/0(\d)/g, '/$1');
+  }
+  // детерминированный банк заданий урока (его заранее озвучивают)
+  function bank(theoryId, specs, size) {
+    let seed = theoryId * 7919 + 17;
+    const r = () => { seed ^= seed << 13; seed >>>= 0; seed ^= seed >> 17; seed ^= seed << 5; seed >>>= 0; return seed / 4294967296; };
+    const out = [], seen = new Set();
+    for (let i = 0; out.length < size && i < size * 5; i++) {
+      const t = task(specs[i % specs.length], r); if (t && !seen.has(t.disp)) { seen.add(t.disp); out.push(t); }
+    }
+    return out;
+  }
+
+  const api = { toWords, withNoun, fmt, timeWords, dateWords, percentWords, decimalWords, MONTHS, task, bank, digitsNorm };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Num = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 // ---- curriculum.js ----
 // Каркас курса по методике «Испанский за 50 уроков»:
 // уровень = 4 блока по 10 уроков (Т К Т К Т К О И И И) + 10 уроков итоговой контрольной.
@@ -493,6 +637,16 @@ const LEVELS = [
       { t: 'Imperfecto: все лица', persons: [0, 1, 2, 3, 4], tenses: ['impf'] },
       { t: 'Imperfecto против indefinido', persons: [0, 1, 2, 3, 4], tenses: ['impf', 'pret'] },
       { t: 'Шесть времён вместе', persons: [0, 1, 2, 3, 4], tenses: ['pres', 'pret', 'perf', 'impf', 'fut', 'cond'] },
+    ],
+  },
+  {
+    // Отдельный раздел: открыт сразу, параллельно основному курсу. Задания — числа словами и на слух.
+    code: '123', title: 'Числа', tenses: ['pres'], numbers: true,
+    blocks: [
+      { t: '0–100: возраст, телефоны, цены', persons: [0, 1, 2, 3, 4] },
+      { t: '100–999: сотни, километры', persons: [0, 1, 2, 3, 4] },
+      { t: 'Тысячи и миллионы: песо, годы', persons: [0, 1, 2, 3, 4] },
+      { t: 'Время, даты, проценты', persons: [0, 1, 2, 3, 4] },
     ],
   },
 ];
@@ -3570,6 +3724,831 @@ L(235, {
     ['Сейчас я каждый день говорю по-испански.', 'Ahora hablo español todos los días.'],
     ['В будущем я буду говорить ещё лучше.', 'En el futuro hablaré todavía mejor.'],
     ['А ты? Ты бы смог изменить свою жизнь?', '¿Y tú? ¿Podrías cambiar tu vida?'],
+  ],
+});
+
+// ---- content_numbers.js ----
+// РАЗДЕЛ «ЧИСЛА» — 4 блока, числа словами
+L(251, {
+  t: 'Числа 0–20. Возраст и телефон',
+  g: 'números · 0–20',
+  rules: [
+    ['0–10', 'cero, uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez. Учим наизусть, это база для всех остальных чисел.'],
+    ['11–15 — отдельные слова', 'once, doce, trece, catorce, quince. Их тоже просто запоминаем.'],
+    ['16–19 = dieci + число', 'dieciséis (с ударением!), diecisiete, dieciocho, diecinueve — одним словом. 20 — veinte.'],
+    ['uno → un / una', 'При счёте — uno. Перед существительным мужского рода — un: un auto, un taller. Перед женским — una: una persona, una semana.'],
+    ['Tengo + число + años', 'Возраст — через tener: ¿Cuántos años tienes? — Tengo veinte años. Mi hijo tiene siete años. Не «soy veinte».'],
+    ['Телефон по одной цифре', 'Номер можно диктовать по цифре: 9 5 4 3 → nueve, cinco, cuatro, tres; 0 — cero. Вопрос: ¿Cuál es tu número de teléfono? / ¿Cuál es tu celular?'],
+  ],
+  words: [['cero', 'ноль'], ['uno / un / una', 'один / одна'], ['cinco', 'пять'], ['diez', 'десять'], ['once', 'одиннадцать'], ['doce', 'двенадцать'], ['quince', 'пятнадцать'], ['dieciséis', 'шестнадцать'], ['diecinueve', 'девятнадцать'], ['veinte', 'двадцать'], ['el número', 'число, номер'], ['el año', 'год'], ['el celular', 'мобильный телефон'], ['¿cuántos? / ¿cuántas?', 'сколько?'], ['el número de teléfono', 'номер телефона']],
+  forms: null,
+  num: [{type:'int', min:0, max:20}],
+  ex: [
+    ['0, 1, 2, 3, 4, 5.', 'Cero, uno, dos, tres, cuatro, cinco.'],
+    ['6, 7, 8, 9, 10.', 'Seis, siete, ocho, nueve, diez.'],
+    ['11, 12, 13, 14, 15.', 'Once, doce, trece, catorce, quince.'],
+    ['16, 17, 18, 19, 20.', 'Dieciséis, diecisiete, dieciocho, diecinueve, veinte.'],
+    ['Сколько тебе лет?', '¿Cuántos años tienes?'],
+    ['Мне 20 лет.', 'Tengo veinte años.'],
+    ['Моей дочери 16 лет.', 'Mi hija tiene dieciséis años.'],
+    ['У меня одна машина.', 'Tengo un auto.'],
+    ['У нас один офис и одна мастерская.', 'Tenemos una oficina y un taller.'],
+    ['Сколько машин в мастерской?', '¿Cuántos autos hay en el taller?'],
+    ['В мастерской 12 машин.', 'Hay doce autos en el taller. | En el taller hay doce autos.'],
+    ['Какой у тебя номер телефона?', '¿Cuál es tu número de teléfono? | ¿Cuál es tu número? | ¿Cuál es tu número de celular? | ¿Cuál es tu celular?'],
+    ['Мой номер — 9 5 4 3 2 1 0 8 7.', 'Mi número es nueve, cinco, cuatro, tres, dos, uno, cero, ocho, siete.'],
+    ['У меня 15 дней отпуска.', 'Tengo quince días de vacaciones.'],
+  ],
+  dr: [
+    ['Мне 18 лет.', 'Tengo dieciocho años.'],
+    ['Ему 17 лет.', 'Él tiene diecisiete años.'],
+    ['Ей 19 лет.', 'Ella tiene diecinueve años.'],
+    ['Ей 15 лет.', 'Ella tiene quince años.'],
+    ['Моему сыну 6 лет.', 'Mi hijo tiene seis años.'],
+    ['Сколько лет твоей дочери?', '¿Cuántos años tiene tu hija?'],
+    ['Моей дочери 11 лет.', 'Mi hija tiene once años.'],
+    ['У меня 2 сына.', 'Tengo dos hijos.'],
+    ['У нас 14 машин.', 'Tenemos catorce autos.'],
+    ['В мастерской 3 машины.', 'Hay tres autos en el taller. | En el taller hay tres autos.'],
+    ['Сегодня работают 13 водителей.', 'Hoy trabajan trece conductores. | Hoy trabajan trece choferes.'],
+    ['Сколько водителей сегодня?', '¿Cuántos conductores hay hoy? | ¿Cuántos choferes hay hoy?'],
+    ['Сегодня 20 водителей.', 'Hoy hay veinte conductores. | Hoy hay veinte choferes.'],
+    ['У меня один вопрос.', 'Tengo una pregunta.'],
+    ['Один день и одна неделя.', 'Un día y una semana.'],
+    ['Здесь только одна машина.', 'Aquí hay solo un auto. | Aquí solo hay un auto. | Hay solo un auto aquí.'],
+    ['В неделе 7 дней.', 'La semana tiene siete días. | Una semana tiene siete días.'],
+    ['У меня 10 минут.', 'Tengo diez minutos.'],
+    ['Мне нужны 4 шины.', 'Necesito cuatro neumáticos.'],
+    ['Машина номер 5 в мастерской.', 'El auto número cinco está en el taller.'],
+    ['Мой номер — 9 7 6 5 4 3 2 1 0.', 'Mi número es nueve, siete, seis, cinco, cuatro, tres, dos, uno, cero.'],
+    ['Телефон офиса — 2 2 4 0 0 1 5 8.', 'El teléfono de la oficina es dos, dos, cuatro, cero, cero, uno, cinco, ocho.'],
+    ['У тебя 2 машины?', '¿Tienes dos autos?'],
+    ['Нет, у меня одна машина.', 'No, tengo un auto. | No, tengo solo un auto.'],
+    ['2 : 0 в пользу «Коло-Коло».', 'Dos a cero para Colo-Colo. | Dos a cero a favor de Colo-Colo.'],
+    ['В этом месяце 16 ремонтов.', 'Este mes hay dieciséis reparaciones.'],
+    ['У меня 12 сообщений.', 'Tengo doce mensajes.'],
+  ],
+  st: [
+    ['Меня зовут Пабло, мне 20 лет.', 'Me llamo Pablo y tengo veinte años. | Me llamo Pablo, tengo veinte años.'],
+    ['Я водитель такси в Сантьяго.', 'Soy conductor de taxi en Santiago. | Soy chofer de taxi en Santiago. | Soy taxista en Santiago.'],
+    ['В нашем автопарке 18 машин.', 'En nuestra flota hay dieciocho autos. | Nuestra flota tiene dieciocho autos.'],
+    ['Сегодня 2 машины в мастерской.', 'Hoy hay dos autos en el taller. | Hoy dos autos están en el taller.'],
+    ['У меня одна сестра, ей 13 лет.', 'Tengo una hermana, tiene trece años. | Tengo una hermana y tiene trece años.'],
+    ['Мой номер телефона — 9 6 5 4 3 2 1 0 8.', 'Mi número de teléfono es nueve, seis, cinco, cuatro, tres, dos, uno, cero, ocho. | Mi número es nueve, seis, cinco, cuatro, tres, dos, uno, cero, ocho.'],
+    ['Я работаю 10 часов в день.', 'Trabajo diez horas al día. | Trabajo diez horas diarias. | Trabajo diez horas por día.'],
+  ],
+});
+
+L(253, {
+  t: 'Числа 21–100. veintiún / veintiuna',
+  g: 'números · 21–100',
+  rules: [
+    ['21–29 — одним словом', 'veintiuno, veintidós, veintitrés, veinticuatro, veinticinco, veintiséis, veintisiete, veintiocho, veintinueve. Ударение: veintidós, veintitrés, veintiséis.'],
+    ['Десятки', 'treinta (30), cuarenta (40), cincuenta (50), sesenta (60), setenta (70), ochenta (80), noventa (90).'],
+    ['31–99 = десяток + y + единица', 'Тремя словами: treinta y uno, cuarenta y cinco, noventa y nueve. «y» стоит только между десятками и единицами.'],
+    ['veintiún / veintiuna', 'Перед мужским родом: veintiún autos, treinta y un días. Перед женским: veintiuna personas, cuarenta y una semanas. При счёте: veintiuno, treinta y uno.'],
+    ['100 = cien', 'Ровно сто — cien: cien autos, cien personas, cien pesos. Не «ciento» и не «un cien».'],
+  ],
+  words: [['veintiuno', 'двадцать один'], ['veintidós', 'двадцать два'], ['veintitrés', 'двадцать три'], ['veintiséis', 'двадцать шесть'], ['treinta', 'тридцать'], ['cuarenta', 'сорок'], ['cincuenta', 'пятьдесят'], ['sesenta', 'шестьдесят'], ['setenta', 'семьдесят'], ['ochenta', 'восемьдесят'], ['noventa', 'девяносто'], ['cien', 'сто'], ['el conductor / el chofer', 'водитель'], ['la persona', 'человек'], ['el estacionamiento', 'парковка']],
+  forms: null,
+  num: [{type:'int', min:21, max:100}],
+  ex: [
+    ['21, 22, 23, 24, 25.', 'Veintiuno, veintidós, veintitrés, veinticuatro, veinticinco.'],
+    ['26, 27, 28, 29, 30.', 'Veintiséis, veintisiete, veintiocho, veintinueve, treinta.'],
+    ['40, 50, 60, 70, 80, 90, 100.', 'Cuarenta, cincuenta, sesenta, setenta, ochenta, noventa, cien.'],
+    ['31, 45, 99.', 'Treinta y uno, cuarenta y cinco, noventa y nueve.'],
+    ['Мне 21 год.', 'Tengo veintiún años.'],
+    ['У нас 21 машина.', 'Tenemos veintiún autos.'],
+    ['Сегодня работает 21 человек.', 'Hoy trabajan veintiuna personas.'],
+    ['В этом месяце 31 день.', 'Este mes tiene treinta y un días.'],
+    ['У нас 41 водитель.', 'Tenemos cuarenta y un conductores. | Tenemos cuarenta y un choferes.'],
+    ['Моему отцу 64 года.', 'Mi padre tiene sesenta y cuatro años. | Mi papá tiene sesenta y cuatro años.'],
+    ['В мастерской 32 машины.', 'Hay treinta y dos autos en el taller. | En el taller hay treinta y dos autos.'],
+    ['Это 26 недель.', 'Son veintiséis semanas.'],
+    ['Это стоит 100 песо.', 'Cuesta cien pesos.'],
+    ['В автопарке 100 машин.', 'En la flota hay cien autos. | La flota tiene cien autos.'],
+  ],
+  dr: [
+    ['Мне 22 года.', 'Tengo veintidós años.'],
+    ['Ей 23 года.', 'Ella tiene veintitrés años.'],
+    ['Ему 38 лет.', 'Él tiene treinta y ocho años.'],
+    ['Моей маме 56 лет.', 'Mi madre tiene cincuenta y seis años. | Mi mamá tiene cincuenta y seis años.'],
+    ['Моему дедушке 87 лет.', 'Mi abuelo tiene ochenta y siete años.'],
+    ['У нас 47 машин.', 'Tenemos cuarenta y siete autos.'],
+    ['В автопарке 32 машины.', 'En la flota hay treinta y dos autos. | La flota tiene treinta y dos autos.'],
+    ['В мастерской 21 машина.', 'Hay veintiún autos en el taller. | En el taller hay veintiún autos.'],
+    ['Сегодня на смене 31 водитель.', 'Hoy hay treinta y un conductores de turno. | Hoy hay treinta y un choferes de turno.'],
+    ['В офисе работает 21 женщина.', 'En la oficina trabajan veintiuna mujeres.'],
+    ['Ремонт занимает 21 день.', 'La reparación tarda veintiún días. | La reparación demora veintiún días.'],
+    ['У меня 81 сообщение.', 'Tengo ochenta y un mensajes.'],
+    ['Это 41 страница.', 'Son cuarenta y una páginas.'],
+    ['Это 91 километр.', 'Son noventa y un kilómetros.'],
+    ['В январе 31 день.', 'Enero tiene treinta y un días.'],
+    ['В апреле 30 дней.', 'Abril tiene treinta días.'],
+    ['Мы ждём 45 минут.', 'Esperamos cuarenta y cinco minutos.'],
+    ['Мы работаем 44 часа в неделю.', 'Trabajamos cuarenta y cuatro horas a la semana. | Trabajamos cuarenta y cuatro horas semanales. | Trabajamos cuarenta y cuatro horas por semana.'],
+    ['У нас 100 водителей.', 'Tenemos cien conductores. | Tenemos cien choferes.'],
+    ['В автопарке будет 100 машин.', 'En la flota va a haber cien autos. | La flota va a tener cien autos. | En la flota habrá cien autos. | La flota tendrá cien autos.'],
+    ['На парковке 73 машины.', 'En el estacionamiento hay setenta y tres autos. | Hay setenta y tres autos en el estacionamiento.'],
+    ['Сколько машин на парковке?', '¿Cuántos autos hay en el estacionamiento?'],
+    ['Сколько человек в офисе?', '¿Cuántas personas hay en la oficina?'],
+    ['В офисе 28 человек.', 'En la oficina hay veintiocho personas. | Hay veintiocho personas en la oficina.'],
+    ['68 и 79.', 'Sesenta y ocho y setenta y nueve.'],
+    ['У меня 52 контакта в телефоне.', 'Tengo cincuenta y dos contactos en el celular. | Tengo cincuenta y dos contactos en el teléfono.'],
+  ],
+  st: [
+    ['В нашем автопарке 61 машина.', 'Nuestra flota tiene sesenta y un autos. | En nuestra flota hay sesenta y un autos.'],
+    ['И 72 водителя.', 'Y setenta y dos conductores. | Y setenta y dos choferes.'],
+    ['Сегодня в мастерской 21 машина.', 'Hoy hay veintiún autos en el taller. | Hoy en el taller hay veintiún autos.'],
+    ['Это много: 21 из 61!', 'Es mucho: ¡veintiuno de sesenta y uno! | Es mucho: veintiuno de sesenta y uno.'],
+    ['Мой начальник хочет 100 машин.', 'Mi jefe quiere cien autos.'],
+    ['Но в офисе только 24 человека.', 'Pero en la oficina hay solo veinticuatro personas. | Pero en la oficina solo hay veinticuatro personas.'],
+    ['Мы работаем 45 часов в неделю.', 'Trabajamos cuarenta y cinco horas a la semana. | Trabajamos cuarenta y cinco horas semanales. | Trabajamos cuarenta y cinco horas por semana.'],
+  ],
+});
+
+L(255, {
+  t: 'Цены и количество до 100. Телефон парами',
+  g: 'números · precios · teléfono',
+  rules: [
+    ['¿Cuánto cuesta…? — Cuesta…', 'Цена одной вещи: ¿Cuánto cuesta el filtro? — Cuesta veinte dólares. Нескольких: ¿Cuánto cuestan los neumáticos? — Cuestan ochenta dólares.'],
+    ['¿Cuánto es? — Son…', 'Сколько с меня: ¿Cuánto es? — Son cincuenta dólares. Цена во множественном числе: son + сумма.'],
+    ['¿Cuántos / cuántas…? — Hay…', 'Количество: ¿Cuántos autos hay? — Hay cuarenta y dos autos. ¿Cuántas multas hay? — Hay veintiuna multas. cuántos/cuántas согласуется с родом.'],
+    ['Телефон парами', 'Мобильный в Чили: +56 9 XXXX XXXX. Часто диктуют парами: 9 87 65 43 21 → nueve, ochenta y siete, sesenta y cinco, cuarenta y tres, veintiuno. +56 — más cincuenta y seis.'],
+    ['Ноль в паре', 'Если пара начинается с нуля, читают по цифрам: 05 → cero cinco. 00 — cero cero или doble cero.'],
+    ['UF и luca', 'UF (u efe) — чилийская расчётная единица, в UF считают франшизу страховки: cinco UF. Разговорно 1000 песо = una luca, veinte lucas = 20 000 песо.'],
+  ],
+  words: [['¿cuánto cuesta?', 'сколько стоит?'], ['¿cuánto cuestan?', 'сколько стоят?'], ['¿cuánto es?', 'сколько с меня?'], ['el precio', 'цена'], ['el peso', 'песо'], ['el dólar', 'доллар'], ['hay', 'есть, имеется'], ['¿cuántos? / ¿cuántas?', 'сколько?'], ['más', 'плюс (+)'], ['el código', 'код'], ['la UF', 'UF — чилийская расчётная единица'], ['el deducible', 'франшиза (страховка)'], ['la luca', 'тысяча песо (разг.)'], ['barato / caro', 'дешёвый / дорогой'], ['la multa', 'штраф']],
+  forms: null,
+  num: [{type:'int', min:0, max:100}, {type:'money', min:1, max:100, step:1}],
+  ex: [
+    ['Сколько стоит фильтр?', '¿Cuánto cuesta el filtro?'],
+    ['Он стоит 25 долларов.', 'Cuesta veinticinco dólares.'],
+    ['Сколько стоят шины?', '¿Cuánto cuestan los neumáticos?'],
+    ['Они стоят 80 долларов.', 'Cuestan ochenta dólares.'],
+    ['Сколько с меня?', '¿Cuánto es? | ¿Cuánto le debo? | ¿Cuánto te debo?'],
+    ['С вас 50 долларов.', 'Son cincuenta dólares.'],
+    ['Франшиза — 5 UF.', 'El deducible es de cinco UF. | El deducible es cinco UF.'],
+    ['Сколько машин в автопарке?', '¿Cuántos autos hay en la flota?'],
+    ['Есть 87 машин.', 'Hay ochenta y siete autos.'],
+    ['Сколько смен в неделю?', '¿Cuántos turnos hay a la semana? | ¿Cuántos turnos hay por semana?'],
+    ['Мой номер: +56 9 87 65 43 21.', 'Mi número es más cincuenta y seis, nueve, ochenta y siete, sesenta y cinco, cuarenta y tres, veintiuno.'],
+    ['Номер офиса: 2 23 45 67 89.', 'El número de la oficina es dos, veintitrés, cuarenta y cinco, sesenta y siete, ochenta y nueve.'],
+    ['Код Чили — +56.', 'El código de Chile es más cincuenta y seis.'],
+    ['Это стоит 20 лук (разг.).', 'Cuesta veinte lucas.'],
+  ],
+  dr: [
+    ['Сколько стоит масло?', '¿Cuánto cuesta el aceite?'],
+    ['Оно стоит 45 долларов.', 'Cuesta cuarenta y cinco dólares.'],
+    ['Сколько стоят фильтры?', '¿Cuánto cuestan los filtros?'],
+    ['Они стоят 12 долларов.', 'Cuestan doce dólares.'],
+    ['Литр масла стоит 8 долларов.', 'El litro de aceite cuesta ocho dólares.'],
+    ['Мойка стоит 10 долларов.', 'El lavado cuesta diez dólares.'],
+    ['Шины стоят 100 долларов каждая.', 'Los neumáticos cuestan cien dólares cada uno.'],
+    ['С вас 60 долларов.', 'Son sesenta dólares.'],
+    ['Это дорого? Нет, 15 долларов.', '¿Es caro? No, son quince dólares. | ¿Es caro? No, cuesta quince dólares.'],
+    ['Это дёшево: 30 лук.', 'Es barato: treinta lucas.'],
+    ['Франшиза — 3 UF.', 'El deducible es de tres UF. | El deducible es tres UF.'],
+    ['Франшиза — 10 UF?', '¿El deducible es de diez UF? | ¿El deducible es diez UF?'],
+    ['Сколько водителей сегодня работает?', '¿Cuántos conductores trabajan hoy? | ¿Cuántos choferes trabajan hoy?'],
+    ['Сегодня работают 64 водителя.', 'Hoy trabajan sesenta y cuatro conductores. | Hoy trabajan sesenta y cuatro choferes.'],
+    ['Сколько машин сегодня в мастерской?', '¿Cuántos autos hay hoy en el taller? | ¿Cuántos autos hay en el taller hoy?'],
+    ['Там 9 машин.', 'Hay nueve autos.'],
+    ['Сколько у тебя смен в неделю?', '¿Cuántos turnos tienes a la semana? | ¿Cuántos turnos tienes por semana?'],
+    ['У меня 6 смен в неделю.', 'Tengo seis turnos a la semana. | Tengo seis turnos por semana.'],
+    ['Сколько штрафов в этом месяце?', '¿Cuántas multas hay este mes?'],
+    ['В этом месяце 21 штраф.', 'Este mes hay veintiuna multas.'],
+    ['У нас 99 машин, а не 100.', 'Tenemos noventa y nueve autos, no cien.'],
+    ['Мой номер: +56 9 76 54 32 10.', 'Mi número es más cincuenta y seis, nueve, setenta y seis, cincuenta y cuatro, treinta y dos, diez.'],
+    ['Номер водителя: 9 98 12 34 56.', 'El número del conductor es nueve, noventa y ocho, doce, treinta y cuatro, cincuenta y seis. | El número del chofer es nueve, noventa y ocho, doce, treinta y cuatro, cincuenta y seis.'],
+    ['Номер мастерской: 9 55 05 70 11.', 'El número del taller es nueve, cincuenta y cinco, cero cinco, setenta, once.'],
+    ['Номер: 9 41 00 22 88.', 'El número es nueve, cuarenta y uno, cero cero, veintidós, ochenta y ocho. | El número es nueve, cuarenta y uno, doble cero, veintidós, ochenta y ocho.'],
+    ['Можешь повторить номер?', '¿Puedes repetir el número?'],
+    ['Это 9 87 или 9 78?', '¿Es nueve, ochenta y siete o nueve, setenta y ocho?'],
+  ],
+  st: [
+    ['Звонит механик из мастерской.', 'Llama el mecánico del taller.'],
+    ['Его номер: +56 9 91 23 45 67.', 'Su número es más cincuenta y seis, nueve, noventa y uno, veintitrés, cuarenta y cinco, sesenta y siete.'],
+    ['Он говорит, что фильтр стоит 18 долларов.', 'Dice que el filtro cuesta dieciocho dólares.'],
+    ['А масло стоит 42 доллара.', 'Y el aceite cuesta cuarenta y dos dólares.'],
+    ['Франшиза по страховке — 5 UF.', 'El deducible del seguro es de cinco UF. | El deducible del seguro es cinco UF.'],
+    ['Я спрашиваю, сколько наших машин у него.', 'Le pregunto cuántos autos nuestros tiene.'],
+    ['У него 4 наши машины.', 'Tiene cuatro autos nuestros.'],
+  ],
+});
+
+L(261, {
+  t: 'Сотни: cien и ciento',
+  g: 'números · 100–999',
+  rules: [
+    ['100 = cien', 'Ровно сто — cien: cien kilómetros, cien autos. Только 100, без продолжения.'],
+    ['101–199 = ciento + …', 'ciento uno, ciento diez, ciento cincuenta, ciento noventa y nueve. Отдельно «ciento» не говорят (кроме por ciento).'],
+    ['200–900 = число + cientos', 'doscientos, trescientos, cuatrocientos, seiscientos, ochocientos — одним словом.'],
+    ['Неправильные: 500, 700, 900', 'quinientos (500), setecientos (700), novecientos (900) — не «cincocientos», «sietecientos», «nuevecientos».'],
+    ['Без «y» после сотен', 'y — только между десятками и единицами: trescientos cuarenta y dos, ciento cinco. Не «trescientos y cuarenta».'],
+  ],
+  words: [['cien', 'сто'], ['ciento uno', 'сто один'], ['ciento cincuenta', 'сто пятьдесят'], ['doscientos', 'двести'], ['trescientos', 'триста'], ['cuatrocientos', 'четыреста'], ['quinientos', 'пятьсот'], ['seiscientos', 'шестьсот'], ['setecientos', 'семьсот'], ['ochocientos', 'восемьсот'], ['novecientos', 'девятьсот'], ['el kilómetro', 'километр'], ['el metro', 'метр'], ['el viaje', 'поездка']],
+  forms: null,
+  num: [{type:'int', min:100, max:999}],
+  ex: [
+    ['100, 101, 110.', 'Cien, ciento uno, ciento diez.'],
+    ['150, 199.', 'Ciento cincuenta, ciento noventa y nueve.'],
+    ['200, 300, 400.', 'Doscientos, trescientos, cuatrocientos.'],
+    ['500, 700, 900.', 'Quinientos, setecientos, novecientos.'],
+    ['600, 800.', 'Seiscientos, ochocientos.'],
+    ['342.', 'Trescientos cuarenta y dos.'],
+    ['Это 100 километров.', 'Son cien kilómetros.'],
+    ['Это 120 километров.', 'Son ciento veinte kilómetros.'],
+    ['До мастерской 500 метров.', 'El taller está a quinientos metros. | Hasta el taller hay quinientos metros.'],
+    ['Машина проехала 700 километров.', 'El auto recorrió setecientos kilómetros.'],
+    ['У нас 115 водителей.', 'Tenemos ciento quince conductores. | Tenemos ciento quince choferes.'],
+    ['Я живу в 900 метрах отсюда.', 'Vivo a novecientos metros de aquí.'],
+    ['Это 555, а не 505.', 'Es quinientos cincuenta y cinco, no quinientos cinco.'],
+    ['Номер 777.', 'El número setecientos setenta y siete. | Número setecientos setenta y siete.'],
+  ],
+  dr: [
+    ['101.', 'Ciento uno.'],
+    ['116.', 'Ciento dieciséis.'],
+    ['230.', 'Doscientos treinta.'],
+    ['375.', 'Trescientos setenta y cinco.'],
+    ['480.', 'Cuatrocientos ochenta.'],
+    ['512.', 'Quinientos doce.'],
+    ['666.', 'Seiscientos sesenta y seis.'],
+    ['709.', 'Setecientos nueve.'],
+    ['822.', 'Ochocientos veintidós.'],
+    ['999.', 'Novecientos noventa y nueve.'],
+    ['Это 100 песо.', 'Son cien pesos.'],
+    ['Это 150 километров.', 'Son ciento cincuenta kilómetros.'],
+    ['Машина проехала 300 километров.', 'El auto recorrió trescientos kilómetros.'],
+    ['Вчера я проехал 260 километров.', 'Ayer recorrí doscientos sesenta kilómetros. | Ayer manejé doscientos sesenta kilómetros.'],
+    ['Мы проехали 400 километров.', 'Recorrimos cuatrocientos kilómetros. | Manejamos cuatrocientos kilómetros.'],
+    ['До Вальпараисо 120 километров.', 'Hasta Valparaíso hay ciento veinte kilómetros. | Valparaíso está a ciento veinte kilómetros.'],
+    ['В следующем году у нас будет 150 машин.', 'El próximo año vamos a tener ciento cincuenta autos. | El año próximo vamos a tener ciento cincuenta autos. | El próximo año tendremos ciento cincuenta autos. | El año que viene vamos a tener ciento cincuenta autos.'],
+    ['Это стоит 500 песо.', 'Cuesta quinientos pesos.'],
+    ['Это стоит 700 песо.', 'Cuesta setecientos pesos.'],
+    ['Это стоит 900 песо.', 'Cuesta novecientos pesos.'],
+    ['У нас 104 водителя.', 'Tenemos ciento cuatro conductores. | Tenemos ciento cuatro choferes.'],
+    ['Машина номер 101 в мастерской.', 'El auto número ciento uno está en el taller.'],
+    ['Сегодня 140 поездок.', 'Hoy hay ciento cuarenta viajes.'],
+    ['В неделе 168 часов.', 'La semana tiene ciento sesenta y ocho horas. | Una semana tiene ciento sesenta y ocho horas.'],
+    ['В году 365 дней.', 'El año tiene trescientos sesenta y cinco días. | Un año tiene trescientos sesenta y cinco días.'],
+    ['Не 105, а 150.', 'No ciento cinco, sino ciento cincuenta.'],
+  ],
+  st: [
+    ['Сегодня я еду в Ранкагуа.', 'Hoy voy a Rancagua.'],
+    ['До Ранкагуа 87 километров.', 'Hasta Rancagua hay ochenta y siete kilómetros. | Rancagua está a ochenta y siete kilómetros.'],
+    ['Туда и обратно — 174 километра.', 'Ida y vuelta son ciento setenta y cuatro kilómetros.'],
+    ['Вчера я проехал 310 километров.', 'Ayer recorrí trescientos diez kilómetros. | Ayer manejé trescientos diez kilómetros.'],
+    ['В этом месяце машина проехала 950 километров.', 'Este mes el auto recorrió novecientos cincuenta kilómetros.'],
+    ['Скоро у нас будет 150 машин.', 'Pronto vamos a tener ciento cincuenta autos. | Pronto tendremos ciento cincuenta autos.'],
+    ['И 180 водителей.', 'Y ciento ochenta conductores. | Y ciento ochenta choferes.'],
+  ],
+});
+
+L(263, {
+  t: 'Род сотен. Примерно: unos / unas',
+  g: 'números · doscientos / doscientas',
+  rules: [
+    ['Сотни согласуются в роде', 'doscientos autos, но doscientas personas; quinientos pesos, но quinientas horas. Меняется окончание: -cientos → -cientas.'],
+    ['cien и ciento — без рода', 'cien personas, ciento veinte personas — cien и ciento не меняются. Но trescientas veinte personas.'],
+    ['…un / …una в конце', 'doscientos veintiún autos, ciento un pasajeros; doscientas veintiuna personas, ciento una multas.'],
+    ['unos / unas = примерно', 'unos trescientos autos — около 300 машин; unas doscientas personas — около 200 человек. Также: alrededor de, más o menos.'],
+    ['más de / menos de / casi', 'С числом — de: más de quinientos kilómetros, menos de cien pesos. casi — почти: casi novecientas llamadas.'],
+  ],
+  words: [['doscientas', 'двести (ж. р.)'], ['quinientas', 'пятьсот (ж. р.)'], ['unos / unas', 'примерно, около'], ['alrededor de', 'около'], ['más o menos', 'примерно'], ['casi', 'почти'], ['más de', 'больше (с числом)'], ['menos de', 'меньше (с числом)'], ['la hora', 'час'], ['la multa', 'штраф'], ['la boleta', 'чек (Чили)'], ['la factura', 'счёт-фактура'], ['el pasajero', 'пассажир'], ['la llamada', 'звонок'], ['la empresa', 'компания']],
+  forms: null,
+  num: [{type:'int', min:100, max:999}],
+  ex: [
+    ['200 машин и 200 человек.', 'Doscientos autos y doscientas personas.'],
+    ['500 песо и 500 часов.', 'Quinientos pesos y quinientas horas.'],
+    ['В компании 400 человек.', 'En la empresa hay cuatrocientas personas. | La empresa tiene cuatrocientas personas.'],
+    ['В этом месяце 300 штрафов.', 'Este mes hay trescientas multas.'],
+    ['У нас 600 чеков.', 'Tenemos seiscientas boletas.'],
+    ['121 человек.', 'Ciento veintiuna personas.'],
+    ['221 машина.', 'Doscientos veintiún autos.'],
+    ['221 поездка.', 'Doscientos veintiún viajes.'],
+    ['Около 300 машин.', 'Unos trescientos autos. | Alrededor de trescientos autos. | Más o menos trescientos autos.'],
+    ['Около 200 человек.', 'Unas doscientas personas. | Alrededor de doscientas personas. | Más o menos doscientas personas.'],
+    ['Больше 500 километров.', 'Más de quinientos kilómetros.'],
+    ['Меньше 100 песо.', 'Menos de cien pesos.'],
+    ['Почти 900 звонков.', 'Casi novecientas llamadas.'],
+    ['Это примерно 400 часов.', 'Son unas cuatrocientas horas. | Son alrededor de cuatrocientas horas. | Son más o menos cuatrocientas horas.'],
+  ],
+  dr: [
+    ['200 часов.', 'Doscientas horas.'],
+    ['200 километров.', 'Doscientos kilómetros.'],
+    ['300 поездок.', 'Trescientos viajes.'],
+    ['400 штрафов.', 'Cuatrocientas multas.'],
+    ['500 чеков.', 'Quinientas boletas.'],
+    ['600 звонков.', 'Seiscientas llamadas.'],
+    ['700 пассажиров.', 'Setecientos pasajeros.'],
+    ['800 счетов-фактур.', 'Ochocientas facturas.'],
+    ['900 человек.', 'Novecientas personas.'],
+    ['101 человек.', 'Ciento una personas.'],
+    ['231 машина.', 'Doscientos treinta y un autos.'],
+    ['341 час.', 'Trescientas cuarenta y una horas.'],
+    ['Это 701 пассажир.', 'Son setecientos un pasajeros.'],
+    ['Мы отправили 521 счёт-фактуру.', 'Enviamos quinientas veintiuna facturas.'],
+    ['В офисе около 100 человек.', 'En la oficina hay unas cien personas. | En la oficina hay alrededor de cien personas. | En la oficina hay más o menos cien personas.'],
+    ['В автопарке около 200 машин.', 'En la flota hay unos doscientos autos. | En la flota hay alrededor de doscientos autos. | En la flota hay más o menos doscientos autos.'],
+    ['Вчера было около 500 звонков.', 'Ayer hubo unas quinientas llamadas. | Ayer hubo alrededor de quinientas llamadas. | Ayer hubo más o menos quinientas llamadas.'],
+    ['Там было около 150 человек.', 'Había unas ciento cincuenta personas. | Había alrededor de ciento cincuenta personas. | Había más o menos ciento cincuenta personas.'],
+    ['В этом месяце больше 300 штрафов.', 'Este mes hay más de trescientas multas.'],
+    ['В прошлом месяце было меньше 200 штрафов.', 'El mes pasado hubo menos de doscientas multas.'],
+    ['Почти 400 пассажиров в день.', 'Casi cuatrocientos pasajeros al día. | Casi cuatrocientos pasajeros por día.'],
+    ['Мы работаем почти 200 часов в месяц.', 'Trabajamos casi doscientas horas al mes. | Trabajamos casi doscientas horas por mes.'],
+    ['У меня около 300 фотографий машин.', 'Tengo unas trescientas fotos de autos. | Tengo alrededor de trescientas fotos de autos. | Tengo más o menos trescientas fotos de autos.'],
+    ['Я проверяю 250 чеков.', 'Reviso doscientas cincuenta boletas.'],
+    ['Водители сделали 900 поездок.', 'Los conductores hicieron novecientos viajes. | Los choferes hicieron novecientos viajes.'],
+    ['Это 200 или 300 человек?', '¿Son doscientas o trescientas personas?'],
+  ],
+  st: [
+    ['В конце месяца я проверяю документы.', 'A fin de mes reviso los documentos. | A fin de mes reviso documentos. | A final de mes reviso los documentos.'],
+    ['У нас около 600 чеков.', 'Tenemos unas seiscientas boletas. | Tenemos alrededor de seiscientas boletas. | Tenemos más o menos seiscientas boletas.'],
+    ['И 230 счетов-фактур из мастерских.', 'Y doscientas treinta facturas de los talleres.'],
+    ['Ещё есть 121 штраф.', 'También hay ciento veintiuna multas.'],
+    ['Водители сделали больше 900 поездок.', 'Los conductores hicieron más de novecientos viajes. | Los choferes hicieron más de novecientos viajes.'],
+    ['Это почти 300 часов работы.', 'Son casi trescientas horas de trabajo.'],
+    ['Работы много, но я доволен.', 'Hay mucho trabajo, pero estoy contento.'],
+  ],
+});
+
+L(265, {
+  t: 'Числа на работе: километры, скорость, вес, номера',
+  g: 'números · km · km/h · kilos',
+  rules: [
+    ['kilómetros por hora', 'Скорость: ochenta kilómetros por hora. ¿A qué velocidad iba? — Iba a ciento veinte kilómetros por hora (с предлогом a).'],
+    ['kilos / kilogramos', 'Вес: ¿Cuánto pesa? — Pesa ciento cincuenta kilos. В разговоре — kilos, в документах — kilogramos.'],
+    ['el auto número + число', 'Номер ставится после слова: el auto número ciento veinte, la oficina trescientos cuatro. В номере — всегда мужская форма: la oficina doscientos uno.'],
+    ['Расстояние: estar a…', 'El taller está a seiscientos metros. Valparaíso está a ciento veinte kilómetros. Пробег за день: recorre doscientos ochenta kilómetros al día.'],
+    ['Цены до 999', '¿Cuánto cuesta el peaje? — Cuesta setecientos cincuenta pesos. Сдача по-чилийски — el vuelto.'],
+  ],
+  words: [['el kilómetro', 'километр'], ['kilómetros por hora', 'километров в час'], ['la velocidad', 'скорость'], ['el kilo', 'килограмм'], ['la carga', 'груз'], ['al día', 'в день'], ['el número', 'номер'], ['la oficina', 'офис, кабинет'], ['el peaje', 'платная дорога, плата за проезд'], ['el pasaje', 'проезд, билет'], ['el vuelto', 'сдача (Чили)'], ['el kilometraje', 'пробег'], ['la carretera', 'трасса'], ['el motor', 'двигатель'], ['la cámara', 'камера']],
+  forms: null,
+  num: [{type:'int', min:100, max:999}, {type:'money', min:100, max:999, step:10}],
+  ex: [
+    ['Скорость — 80 километров в час.', 'La velocidad es de ochenta kilómetros por hora. | La velocidad es ochenta kilómetros por hora.'],
+    ['В городе — 50 километров в час.', 'En la ciudad, cincuenta kilómetros por hora. | En la ciudad la velocidad es de cincuenta kilómetros por hora.'],
+    ['На трассе можно ехать 120 километров в час.', 'En la carretera se puede ir a ciento veinte kilómetros por hora. | En la autopista se puede ir a ciento veinte kilómetros por hora.'],
+    ['Водитель ехал 140 километров в час.', 'El conductor iba a ciento cuarenta kilómetros por hora. | El chofer iba a ciento cuarenta kilómetros por hora.'],
+    ['Сколько весит груз?', '¿Cuánto pesa la carga?'],
+    ['Груз весит 350 килограммов.', 'La carga pesa trescientos cincuenta kilos. | La carga pesa trescientos cincuenta kilogramos.'],
+    ['Машина номер 120 в мастерской.', 'El auto número ciento veinte está en el taller.'],
+    ['Машина номер 101 готова.', 'El auto número ciento uno está listo.'],
+    ['Мой кабинет — 304.', 'Mi oficina es la trescientos cuatro. | Mi oficina es la número trescientos cuatro.'],
+    ['Он проезжает 280 километров в день.', 'Recorre doscientos ochenta kilómetros al día. | Recorre doscientos ochenta kilómetros por día. | Maneja doscientos ochenta kilómetros al día.'],
+    ['Мастерская в 600 метрах отсюда.', 'El taller está a seiscientos metros de aquí.'],
+    ['Бутылка воды стоит 890 песо.', 'La botella de agua cuesta ochocientos noventa pesos. | Una botella de agua cuesta ochocientos noventa pesos.'],
+    ['Платная дорога стоит 750 песо.', 'El peaje cuesta setecientos cincuenta pesos.'],
+    ['Пробег за неделю — 820 километров.', 'El kilometraje de la semana es de ochocientos veinte kilómetros. | En la semana recorrió ochocientos veinte kilómetros.'],
+  ],
+  dr: [
+    ['Он ехал 90 километров в час.', 'Iba a noventa kilómetros por hora.'],
+    ['Мы ехали 110 километров в час.', 'Íbamos a ciento diez kilómetros por hora.'],
+    ['Он ехал больше 120 километров в час.', 'Iba a más de ciento veinte kilómetros por hora.'],
+    ['Камера показывает 132 километра в час.', 'La cámara marca ciento treinta y dos kilómetros por hora.'],
+    ['Максимальная скорость — 100 километров в час.', 'La velocidad máxima es de cien kilómetros por hora. | La velocidad máxima es cien kilómetros por hora.'],
+    ['С какой скоростью ехала машина?', '¿A qué velocidad iba el auto?'],
+    ['Машина ехала со скоростью 115 километров в час.', 'El auto iba a ciento quince kilómetros por hora.'],
+    ['Сколько весит двигатель?', '¿Cuánto pesa el motor?'],
+    ['Двигатель весит 180 килограммов.', 'El motor pesa ciento ochenta kilos. | El motor pesa ciento ochenta kilogramos.'],
+    ['Груз весит меньше 500 килограммов.', 'La carga pesa menos de quinientos kilos. | La carga pesa menos de quinientos kilogramos.'],
+    ['Машина номер 245 на парковке.', 'El auto número doscientos cuarenta y cinco está en el estacionamiento.'],
+    ['Машина номер 318 в мастерской.', 'El auto número trescientos dieciocho está en el taller.'],
+    ['Где машина номер 501?', '¿Dónde está el auto número quinientos uno?'],
+    ['Машина номер 777 новая.', 'El auto número setecientos setenta y siete es nuevo.'],
+    ['Кабинет 210, пожалуйста.', 'La oficina doscientos diez, por favor.'],
+    ['Сегодня я проехал 430 километров.', 'Hoy recorrí cuatrocientos treinta kilómetros. | Hoy manejé cuatrocientos treinta kilómetros. | Hoy he recorrido cuatrocientos treinta kilómetros.'],
+    ['До Ла-Серены 470 километров.', 'La Serena está a cuatrocientos setenta kilómetros. | Hasta La Serena hay cuatrocientos setenta kilómetros.'],
+    ['Водитель проезжает около 250 километров в день.', 'El conductor recorre unos doscientos cincuenta kilómetros al día. | El chofer recorre unos doscientos cincuenta kilómetros al día. | El conductor recorre alrededor de doscientos cincuenta kilómetros al día. | El conductor recorre unos doscientos cincuenta kilómetros por día.'],
+    ['Мастерская в 300 метрах.', 'El taller está a trescientos metros.'],
+    ['Пробег — 940 километров в неделю.', 'El kilometraje es de novecientos cuarenta kilómetros a la semana. | Son novecientos cuarenta kilómetros a la semana. | El kilometraje es de novecientos cuarenta kilómetros por semana.'],
+    ['Платная дорога стоит 680 песо.', 'El peaje cuesta seiscientos ochenta pesos.'],
+    ['Парковка стоит 990 песо в час.', 'El estacionamiento cuesta novecientos noventa pesos la hora. | El estacionamiento cuesta novecientos noventa pesos por hora.'],
+    ['Сколько стоит проезд в метро?', '¿Cuánto cuesta el pasaje del metro? | ¿Cuánto cuesta el pasaje en metro? | ¿Cuánto cuesta el metro?'],
+    ['Проезд стоит 870 песо.', 'El pasaje cuesta ochocientos setenta pesos.'],
+    ['Шоколадка стоит 590 песо.', 'El chocolate cuesta quinientos noventa pesos. | Un chocolate cuesta quinientos noventa pesos.'],
+    ['Сдача — 160 песо.', 'El vuelto es de ciento sesenta pesos. | Son ciento sesenta pesos de vuelto. | El vuelto son ciento sesenta pesos.'],
+  ],
+  st: [
+    ['Сегодня пришёл штраф за превышение скорости.', 'Hoy llegó una multa por exceso de velocidad.'],
+    ['Машина номер 214, водитель — Хорхе.', 'Auto número doscientos catorce, conductor Jorge. | El auto número doscientos catorce, el conductor es Jorge. | Auto número doscientos catorce, chofer Jorge.'],
+    ['Камера показала 128 километров в час.', 'La cámara marcó ciento veintiocho kilómetros por hora.'],
+    ['А на этой трассе максимум — 100.', 'Y en esta carretera el máximo es cien. | Pero en esta carretera el máximo es cien.'],
+    ['Хорхе говорит, что ехал 98.', 'Jorge dice que iba a noventa y ocho.'],
+    ['Но GPS показывает 126 километров в час.', 'Pero el GPS marca ciento veintiséis kilómetros por hora.'],
+    ['Платить будет Хорхе.', 'Jorge va a pagar. | Va a pagar Jorge. | Jorge pagará. | Pagará Jorge.'],
+  ],
+});
+
+L(271, {
+  t: 'Тысячи: mil, 1.000–9.999. Годы',
+  g: 'números · mil · años',
+  rules: [
+    ['mil — без «un»', '1000 = mil (не «un mil»). 2000 = dos mil, 5000 = cinco mil. mil не меняется: tres mil, не «tres miles».'],
+    ['mil + остаток', '1250 = mil doscientos cincuenta; 3015 = tres mil quince; 7080 = siete mil ochenta. После mil — без «y».'],
+    ['Род после mil', 'Род влияет на сотни после mil: dos mil quinientas personas, но dos mil quinientos autos.'],
+    ['Годы — как обычные числа', '1998 = mil novecientos noventa y ocho; 2026 = dos mil veintiséis; 2000 = dos mil. «В 1998 году» — en mil novecientos noventa y ocho / en el año…'],
+    ['Чилийская запись: точка', 'В Чили тысячи отделяют точкой: 1.000, 9.500 — mil, nueve mil quinientos. Запятая — десятичная (2,5). Годы пишут без точки: 2026.'],
+    ['Модель машины', 'Год выпуска: un auto del dos mil diecinueve / modelo dos mil diecinueve.'],
+  ],
+  words: [['mil', 'тысяча'], ['dos mil', 'две тысячи'], ['cinco mil', 'пять тысяч'], ['nueve mil', 'девять тысяч'], ['mil quinientos', 'тысяча пятьсот'], ['mil novecientos noventa y ocho', '1998'], ['dos mil veintiséis', '2026'], ['el año', 'год'], ['¿en qué año?', 'в каком году?'], ['el modelo', 'модель'], ['el punto', 'точка'], ['la coma', 'запятая'], ['la mantención', 'техобслуживание (Чили)'], ['el lavado', 'мойка']],
+  forms: null,
+  num: [{type:'int', min:1000, max:9999}],
+  ex: [
+    ['1000, 2000, 3000.', 'Mil, dos mil, tres mil.'],
+    ['1500.', 'Mil quinientos.'],
+    ['2750.', 'Dos mil setecientos cincuenta.'],
+    ['3015.', 'Tres mil quince.'],
+    ['9999.', 'Nueve mil novecientos noventa y nueve.'],
+    ['1000 песо.', 'Mil pesos.'],
+    ['5000 песо.', 'Cinco mil pesos.'],
+    ['2500 человек.', 'Dos mil quinientas personas.'],
+    ['2500 машин.', 'Dos mil quinientos autos.'],
+    ['Я родился в 1998 году.', 'Nací en mil novecientos noventa y ocho. | Nací en el año mil novecientos noventa y ocho.'],
+    ['Сейчас 2026 год.', 'Estamos en dos mil veintiséis. | Estamos en el año dos mil veintiséis. | Es el año dos mil veintiséis.'],
+    ['Машина 2019 года.', 'El auto es del dos mil diecinueve. | Es un auto del dos mil diecinueve. | El auto es modelo dos mil diecinueve.'],
+    ['В 2000 году.', 'En el año dos mil. | En dos mil. | En el dos mil.'],
+    ['В каком году ты приехал в Чили?', '¿En qué año llegaste a Chile?'],
+  ],
+  dr: [
+    ['1001.', 'Mil uno.'],
+    ['1200.', 'Mil doscientos.'],
+    ['4300.', 'Cuatro mil trescientos.'],
+    ['5500.', 'Cinco mil quinientos.'],
+    ['7080.', 'Siete mil ochenta.'],
+    ['8888.', 'Ocho mil ochocientos ochenta y ocho.'],
+    ['Тысяча километров.', 'Mil kilómetros.'],
+    ['6100 песо.', 'Seis mil cien pesos.'],
+    ['2990 песо.', 'Dos mil novecientos noventa pesos.'],
+    ['Это стоит 3500 песо.', 'Cuesta tres mil quinientos pesos.'],
+    ['Кофе стоит 2200 песо.', 'El café cuesta dos mil doscientos pesos.'],
+    ['Мойка стоит 8000 песо.', 'El lavado cuesta ocho mil pesos.'],
+    ['В компании 1200 человек.', 'En la empresa hay mil doscientas personas. | La empresa tiene mil doscientas personas.'],
+    ['В этом месяце было 1300 поездок.', 'Este mes hubo mil trescientos viajes.'],
+    ['Около 3000 человек.', 'Unas tres mil personas. | Alrededor de tres mil personas. | Más o menos tres mil personas.'],
+    ['Машина проехала 2400 километров.', 'El auto recorrió dos mil cuatrocientos kilómetros.'],
+    ['ТО каждые 5000 километров.', 'La mantención es cada cinco mil kilómetros. | Mantención cada cinco mil kilómetros.'],
+    ['Я родилась в 1985 году.', 'Nací en mil novecientos ochenta y cinco. | Nací en el año mil novecientos ochenta y cinco.'],
+    ['Мой отец родился в 1960 году.', 'Mi padre nació en mil novecientos sesenta. | Mi papá nació en mil novecientos sesenta. | Mi padre nació en el año mil novecientos sesenta.'],
+    ['Это было в 1999 году.', 'Fue en mil novecientos noventa y nueve. | Fue en el año mil novecientos noventa y nueve.'],
+    ['Компания открылась в 2021 году.', 'La empresa abrió en dos mil veintiuno. | La empresa abrió en el año dos mil veintiuno. | La empresa se abrió en dos mil veintiuno.'],
+    ['Я приехал в Чили в 2023 году.', 'Llegué a Chile en dos mil veintitrés. | Llegué a Chile en el año dos mil veintitrés.'],
+    ['Машина 2022 года.', 'El auto es del dos mil veintidós. | Es un auto del dos mil veintidós. | El auto es modelo dos mil veintidós.'],
+    ['В 2027 году у нас будет 150 машин.', 'En dos mil veintisiete vamos a tener ciento cincuenta autos. | En el año dos mil veintisiete vamos a tener ciento cincuenta autos. | En dos mil veintisiete tendremos ciento cincuenta autos.'],
+    ['2026 и 2027.', 'Dos mil veintiséis y dos mil veintisiete.'],
+    ['Не 1500, а 1050.', 'No mil quinientos, sino mil cincuenta.'],
+  ],
+  st: [
+    ['Наша компания открылась в 2019 году.', 'Nuestra empresa abrió en dos mil diecinueve. | Nuestra empresa abrió en el año dos mil diecinueve.'],
+    ['Тогда у нас было 5 машин.', 'Entonces teníamos cinco autos. | En ese momento teníamos cinco autos.'],
+    ['Сейчас 2026 год, и у нас 32 машины.', 'Ahora estamos en dos mil veintiséis y tenemos treinta y dos autos. | Estamos en dos mil veintiséis y tenemos treinta y dos autos.'],
+    ['В месяц водители делают около 6000 поездок.', 'Al mes los conductores hacen unos seis mil viajes. | Al mes los choferes hacen unos seis mil viajes. | Los conductores hacen unos seis mil viajes al mes.'],
+    ['Каждая машина проезжает около 7000 километров в месяц.', 'Cada auto recorre unos siete mil kilómetros al mes. | Cada auto recorre alrededor de siete mil kilómetros al mes.'],
+    ['ТО — каждые 5000 километров.', 'La mantención es cada cinco mil kilómetros.'],
+    ['В 2027 году мы хотим 100 машин.', 'En dos mil veintisiete queremos cien autos. | En dos mil veintisiete queremos tener cien autos. | En el año dos mil veintisiete queremos tener cien autos.'],
+  ],
+});
+
+L(273, {
+  t: 'От 10 000 до 999 999: цены, lucas, километраж',
+  g: 'números · miles · pesos',
+  rules: [
+    ['число + mil', '10 000 = diez mil, 45 000 = cuarenta y cinco mil, 450 000 = cuatrocientos cincuenta mil. Сначала число тысяч целиком, потом mil, потом остаток.'],
+    ['veintiún mil, ciento un mil', 'Перед mil «uno» сокращается: 21 000 = veintiún mil, 31 000 = treinta y un mil, 101 000 = ciento un mil. Но 1000 — просто mil.'],
+    ['Род: doscientas mil personas', 'Сотни перед mil согласуются с существительным: trescientas mil personas, но trescientos mil pesos.'],
+    ['Цены в песо', '$15.990 = quince mil novecientos noventa pesos; $450.000 = cuatrocientos cincuenta mil pesos. Знак $ в Чили — песо. НДС = IVA (19 %).'],
+    ['luca / lucas', 'Разговорно 1000 песо = una luca: diez lucas = 10 000, quinientas lucas = 500 000 (luca — женский род!). Официально — pesos.'],
+    ['Километраж', 'El auto tiene ciento veinte mil kilómetros — пробег 120 000 км. La mantención es cada diez mil kilómetros — ТО каждые 10 000 км.'],
+  ],
+  words: [['diez mil', 'десять тысяч'], ['veinte mil', 'двадцать тысяч'], ['veintiún mil', 'двадцать одна тысяча'], ['cincuenta mil', 'пятьдесят тысяч'], ['cien mil', 'сто тысяч'], ['quinientos mil', 'пятьсот тысяч'], ['la luca', 'тысяча песо (разг.)'], ['el kilometraje', 'пробег'], ['la mantención', 'техобслуживание (Чили)'], ['el sueldo', 'зарплата'], ['el presupuesto', 'смета'], ['el repuesto', 'запчасть'], ['la mano de obra', 'работа (в смете)'], ['el IVA', 'НДС (19 %)'], ['el neumático', 'шина']],
+  forms: null,
+  num: [{type:'money', min:1000, max:999999, step:10}, {type:'int', min:10000, max:999999}],
+  ex: [
+    ['10 000 песо.', 'Diez mil pesos.'],
+    ['15 990 песо.', 'Quince mil novecientos noventa pesos.'],
+    ['21 000 песо.', 'Veintiún mil pesos.'],
+    ['45 500 песо.', 'Cuarenta y cinco mil quinientos pesos.'],
+    ['100 000 песо.', 'Cien mil pesos.'],
+    ['450 000 песо.', 'Cuatrocientos cincuenta mil pesos.'],
+    ['999 990 песо.', 'Novecientos noventa y nueve mil novecientos noventa pesos.'],
+    ['200 000 человек.', 'Doscientas mil personas.'],
+    ['Это стоит 20 лук.', 'Cuesta veinte lucas. | Cuesta veinte mil pesos.'],
+    ['Это 10 000 песо, то есть 10 лук.', 'Son diez mil pesos, o sea, diez lucas. | Son diez mil pesos, es decir, diez lucas.'],
+    ['У машины 120 000 километров.', 'El auto tiene ciento veinte mil kilómetros.'],
+    ['ТО каждые 10 000 километров.', 'La mantención es cada diez mil kilómetros. | Mantención cada diez mil kilómetros.'],
+    ['Смета — 380 000 песо.', 'El presupuesto es de trescientos ochenta mil pesos. | El presupuesto es trescientos ochenta mil pesos.'],
+    ['Сколько стоит ремонт?', '¿Cuánto cuesta la reparación? | ¿Cuánto sale la reparación? | ¿Cuánto cuesta el arreglo?'],
+  ],
+  dr: [
+    ['12 000 песо.', 'Doce mil pesos.'],
+    ['16 500 песо.', 'Dieciséis mil quinientos pesos.'],
+    ['22 990 песо.', 'Veintidós mil novecientos noventa pesos.'],
+    ['31 000 песо.', 'Treinta y un mil pesos.'],
+    ['58 300 песо.', 'Cincuenta y ocho mil trescientos pesos.'],
+    ['99 990 песо.', 'Noventa y nueve mil novecientos noventa pesos.'],
+    ['101 000 песо.', 'Ciento un mil pesos.'],
+    ['250 000 песо.', 'Doscientos cincuenta mil pesos.'],
+    ['500 000 песо.', 'Quinientos mil pesos.'],
+    ['730 000 песо.', 'Setecientos treinta mil pesos.'],
+    ['Около 300 000 человек.', 'Unas trescientas mil personas. | Alrededor de trescientas mil personas. | Más o menos trescientas mil personas.'],
+    ['Масло и фильтр — 45 000 песо.', 'El aceite y el filtro cuestan cuarenta y cinco mil pesos. | Aceite y filtro: cuarenta y cinco mil pesos. | El aceite y el filtro son cuarenta y cinco mil pesos.'],
+    ['Шина стоит 89 990 песо.', 'El neumático cuesta ochenta y nueve mil novecientos noventa pesos.'],
+    ['Смета на ремонт — 640 000 песо.', 'El presupuesto de la reparación es de seiscientos cuarenta mil pesos. | El presupuesto de reparación es de seiscientos cuarenta mil pesos. | El presupuesto de la reparación es seiscientos cuarenta mil pesos.'],
+    ['Работа — 120 000, запчасти — 210 000.', 'La mano de obra, ciento veinte mil; los repuestos, doscientos diez mil. | Mano de obra: ciento veinte mil; repuestos: doscientos diez mil.'],
+    ['Плюс НДС — 62 700 песо.', 'Más IVA: sesenta y dos mil setecientos pesos. | Más el IVA: sesenta y dos mil setecientos pesos. | Más IVA, sesenta y dos mil setecientos pesos.'],
+    ['Это 50 лук.', 'Son cincuenta lucas. | Son cincuenta mil pesos.'],
+    ['Это стоит 300 лук.', 'Cuesta trescientas lucas. | Cuesta trescientos mil pesos.'],
+    ['Мойка стоит 15 лук? Дорого!', '¿El lavado cuesta quince lucas? ¡Qué caro! | ¿El lavado cuesta quince lucas? ¡Es caro!'],
+    ['У машины 85 000 километров.', 'El auto tiene ochenta y cinco mil kilómetros.'],
+    ['У этой машины 201 000 километров.', 'Este auto tiene doscientos un mil kilómetros.'],
+    ['Следующее ТО — на 130 000 километрах.', 'La próxima mantención es a los ciento treinta mil kilómetros.'],
+    ['Машина проехала 21 000 километров за год.', 'El auto recorrió veintiún mil kilómetros en un año.'],
+    ['Водитель сдаёт 45 000 песо в день.', 'El conductor entrega cuarenta y cinco mil pesos al día. | El chofer entrega cuarenta y cinco mil pesos al día. | El conductor entrega cuarenta y cinco mil pesos diarios.'],
+    ['Мы потратили 780 000 песо на шины.', 'Gastamos setecientos ochenta mil pesos en neumáticos.'],
+    ['Зарплата механика — 850 000 песо.', 'El sueldo del mecánico es de ochocientos cincuenta mil pesos. | El sueldo del mecánico es ochocientos cincuenta mil pesos.'],
+  ],
+  st: [
+    ['Звонит мастерская: смета готова.', 'Llama el taller: el presupuesto está listo.'],
+    ['Работа — 180 000 песо.', 'La mano de obra cuesta ciento ochenta mil pesos. | La mano de obra es de ciento ochenta mil pesos. | Mano de obra: ciento ochenta mil pesos.'],
+    ['Запчасти — 321 000 песо.', 'Los repuestos cuestan trescientos veintiún mil pesos. | Los repuestos son trescientos veintiún mil pesos. | Repuestos: trescientos veintiún mil pesos.'],
+    ['Итого 501 000 песо плюс НДС.', 'En total son quinientos un mil pesos más IVA. | Total: quinientos un mil pesos más IVA.'],
+    ['Это много: больше 500 лук!', 'Es mucho: ¡más de quinientas lucas! | Es mucho: más de quinientas lucas.'],
+    ['У машины 160 000 километров.', 'El auto tiene ciento sesenta mil kilómetros.'],
+    ['Я попрошу другую смету.', 'Voy a pedir otro presupuesto. | Pediré otro presupuesto.'],
+  ],
+});
+
+L(275, {
+  t: 'Миллионы: un millón de pesos',
+  g: 'números · millones',
+  rules: [
+    ['un millón de + существительное', '1 000 000 = un millón. Ровные миллионы перед существительным — с de: un millón de pesos, dos millones de pesos, diez millones de personas.'],
+    ['millones — множественное', '2 000 000 = dos millones, 15 000 000 = quince millones, 21 000 000 = veintiún millones (millón — мужской род).'],
+    ['Есть остаток — без de', '1 250 000 = un millón doscientos cincuenta mil pesos (без de!). 3 500 000 = tres millones quinientos mil pesos.'],
+    ['y medio', '1 500 000 = un millón quinientos mil или un millón y medio de pesos. 2 500 000 = dos millones y medio.'],
+    ['Род остатка', 'millón — мужской, но остаток согласуется с существительным: un millón doscientas mil personas, un millón doscientos mil pesos.'],
+    ['palo — сленг', 'Разговорно в Чили миллион = un palo: cinco palos = 5 млн. Полезно понимать; на работе говори millones.'],
+  ],
+  words: [['un millón', 'миллион'], ['dos millones', 'два миллиона'], ['un millón de pesos', 'миллион песо'], ['un millón y medio', 'полтора миллиона'], ['diez millones', 'десять миллионов'], ['veintiún millones', 'двадцать один миллион'], ['el palo', 'миллион (сленг)'], ['el presupuesto', 'смета; бюджет'], ['el choque', 'авария (столкновение)'], ['el seguro', 'страховка'], ['el deducible', 'франшиза'], ['el liquidador', 'ликвидатор (страховой)'], ['el sueldo', 'зарплата'], ['el gasto', 'расход'], ['la flota', 'автопарк']],
+  forms: null,
+  num: [{type:'money', min:1000000, max:30000000, step:10000}],
+  ex: [
+    ['1 000 000 песо.', 'Un millón de pesos.'],
+    ['2 000 000 песо.', 'Dos millones de pesos.'],
+    ['1 200 000 песо.', 'Un millón doscientos mil pesos.'],
+    ['1 500 000 песо.', 'Un millón quinientos mil pesos. | Un millón y medio de pesos.'],
+    ['2 500 000 песо.', 'Dos millones quinientos mil pesos. | Dos millones y medio de pesos.'],
+    ['3 750 000 песо.', 'Tres millones setecientos cincuenta mil pesos.'],
+    ['10 000 000 песо.', 'Diez millones de pesos.'],
+    ['21 000 000 песо.', 'Veintiún millones de pesos.'],
+    ['Сколько стоит новая машина?', '¿Cuánto cuesta un auto nuevo?'],
+    ['Машина стоит 14 000 000 песо.', 'El auto cuesta catorce millones de pesos.'],
+    ['Смета — 1 250 000 песо.', 'El presupuesto es de un millón doscientos cincuenta mil pesos. | El presupuesto es un millón doscientos cincuenta mil pesos.'],
+    ['Моя зарплата — 2 800 000 песо.', 'Mi sueldo es de dos millones ochocientos mil pesos. | Mi sueldo es dos millones ochocientos mil pesos.'],
+    ['Бюджет автопарка — 30 000 000 песо в месяц.', 'El presupuesto de la flota es de treinta millones de pesos al mes. | El presupuesto de la flota es treinta millones de pesos al mes. | El presupuesto de la flota es de treinta millones de pesos mensuales.'],
+    ['Около 2 000 000 песо.', 'Unos dos millones de pesos. | Alrededor de dos millones de pesos. | Más o menos dos millones de pesos.'],
+  ],
+  dr: [
+    ['1 100 000 песо.', 'Un millón cien mil pesos.'],
+    ['1 350 000 песо.', 'Un millón trescientos cincuenta mil pesos.'],
+    ['3 000 000 песо.', 'Tres millones de pesos.'],
+    ['4 990 000 песо.', 'Cuatro millones novecientos noventa mil pesos.'],
+    ['6 200 000 песо.', 'Seis millones doscientos mil pesos.'],
+    ['12 500 000 песо.', 'Doce millones quinientos mil pesos. | Doce millones y medio de pesos.'],
+    ['15 000 000 песо.', 'Quince millones de pesos.'],
+    ['21 300 000 песо.', 'Veintiún millones trescientos mil pesos.'],
+    ['28 000 000 песо.', 'Veintiocho millones de pesos.'],
+    ['1 000 000 человек.', 'Un millón de personas.'],
+    ['Машина стоит 16 990 000 песо.', 'El auto cuesta dieciséis millones novecientos noventa mil pesos.'],
+    ['Новая машина стоит около 15 миллионов.', 'Un auto nuevo cuesta unos quince millones. | Un auto nuevo cuesta alrededor de quince millones. | Un auto nuevo cuesta más o menos quince millones.'],
+    ['Смета на ремонт — 2 300 000 песо.', 'El presupuesto de la reparación es de dos millones trescientos mil pesos. | El presupuesto de reparación es de dos millones trescientos mil pesos. | El presupuesto de la reparación es dos millones trescientos mil pesos.'],
+    ['Ремонт после аварии стоит 4 000 000 песо.', 'La reparación después del choque cuesta cuatro millones de pesos. | La reparación del choque cuesta cuatro millones de pesos.'],
+    ['Страховая платит 3 500 000 песо.', 'El seguro paga tres millones quinientos mil pesos. | La aseguradora paga tres millones quinientos mil pesos. | El seguro paga tres millones y medio de pesos.'],
+    ['Франшиза — 300 000 песо.', 'El deducible es de trescientos mil pesos. | El deducible es trescientos mil pesos.'],
+    ['Моя зарплата — 3 000 000 песо.', 'Mi sueldo es de tres millones de pesos. | Mi sueldo es tres millones de pesos.'],
+    ['Я хочу 4 000 000 песо в месяц.', 'Quiero cuatro millones de pesos al mes. | Quiero cuatro millones de pesos mensuales.'],
+    ['Зарплата водителя — около 1 000 000 песо.', 'El sueldo del conductor es de alrededor de un millón de pesos. | El sueldo del chofer es de alrededor de un millón de pesos. | El conductor gana alrededor de un millón de pesos.'],
+    ['Бюджет на этот месяц — 25 000 000 песо.', 'El presupuesto de este mes es de veinticinco millones de pesos. | El presupuesto para este mes es de veinticinco millones de pesos. | El presupuesto de este mes es veinticinco millones de pesos.'],
+    ['Мы потратили 18 200 000 песо.', 'Gastamos dieciocho millones doscientos mil pesos.'],
+    ['Расходы выросли на 2 000 000 песо.', 'Los gastos subieron dos millones de pesos. | Los gastos aumentaron dos millones de pesos. | Los gastos aumentaron en dos millones de pesos.'],
+    ['Это 1 500 000 или 1 050 000?', '¿Es un millón quinientos mil o un millón cincuenta mil? | ¿Son un millón quinientos mil o un millón cincuenta mil?'],
+    ['За год — 300 000 000 песо.', 'Al año son trescientos millones de pesos. | En un año son trescientos millones de pesos.'],
+    ['Автопарк стоит больше 500 000 000 песо.', 'La flota vale más de quinientos millones de pesos. | La flota cuesta más de quinientos millones de pesos.'],
+    ['Миллион — это много?', '¿Un millón es mucho?'],
+  ],
+  st: [
+    ['Вчера была авария: машина номер 27.', 'Ayer hubo un choque: el auto número veintisiete. | Ayer hubo un accidente: el auto número veintisiete.'],
+    ['Мастерская прислала смету: 3 400 000 песо.', 'El taller mandó el presupuesto: tres millones cuatrocientos mil pesos. | El taller envió el presupuesto: tres millones cuatrocientos mil pesos.'],
+    ['Ликвидатор говорит, что это много.', 'El liquidador dice que es mucho.'],
+    ['Он одобряет 2 900 000 песо.', 'Aprueba dos millones novecientos mil pesos. | Él aprueba dos millones novecientos mil pesos.'],
+    ['Франшиза — 450 000 песо.', 'El deducible es de cuatrocientos cincuenta mil pesos. | El deducible es cuatrocientos cincuenta mil pesos.'],
+    ['Новая машина стоит 15 000 000 песо.', 'Un auto nuevo cuesta quince millones de pesos.'],
+    ['Поэтому мы будем ремонтировать машину.', 'Por eso vamos a reparar el auto. | Por eso vamos a arreglar el auto. | Por eso repararemos el auto.'],
+  ],
+});
+
+L(281, {
+  t: 'Время: ¿Qué hora es? ¿A qué hora…?',
+  g: 'números · la hora',
+  rules: [
+    ['Es la una / son las…', '1:00 — es la una (единственное число). Остальные часы — son las dos, son las tres… Часы женского рода: la una, las dos. В прошлом: era la una, eran las diez.'],
+    ['y + минуты', 'Son las tres y diez (3:10). y cuarto / y quince (3:15), y media / y treinta (3:30). en punto — ровно: son las ocho en punto.'],
+    ['menos / para', 'После :30 часто считают до следующего часа: 4:45 = las cinco menos cuarto; в Чили чаще un cuarto para las cinco, 4:50 = diez para las cinco. Можно и las cuatro y cuarenta y cinco.'],
+    ['¿A qué hora…? — A las…', 'Когда что-то происходит: ¿A qué hora empieza el turno? — A las siete. A la una. Промежуток: de nueve a seis.'],
+    ['de la mañana / tarde / noche', 'las siete de la mañana, las tres de la tarde, las diez de la noche. В расписании пишут 18:00, а говорят las seis de la tarde. al mediodía — в полдень, a medianoche — в полночь.'],
+  ],
+  words: [['la hora', 'час; время'], ['¿qué hora es?', 'который час?'], ['¿a qué hora?', 'во сколько?'], ['es la una', 'час (1:00)'], ['son las dos', 'два часа'], ['y cuarto', 'с четвертью (:15)'], ['y media', 'половина (:30)'], ['menos cuarto', 'без четверти'], ['un cuarto para las…', 'без четверти … (Чили)'], ['en punto', 'ровно'], ['de la mañana', 'утра'], ['de la tarde', 'дня, вечера (до темноты)'], ['de la noche', 'вечера, ночи'], ['el mediodía', 'полдень'], ['el turno', 'смена']],
+  forms: null,
+  num: [{type:'time'}],
+  ex: [
+    ['Который час?', '¿Qué hora es?'],
+    ['Сейчас 1:00.', 'Es la una. | Es la una en punto.'],
+    ['Сейчас 3:00.', 'Son las tres. | Son las tres en punto.'],
+    ['Сейчас 3:15.', 'Son las tres y cuarto. | Son las tres y quince.'],
+    ['Сейчас 3:30.', 'Son las tres y media. | Son las tres y treinta.'],
+    ['Сейчас 1:20.', 'Es la una y veinte.'],
+    ['Сейчас 4:45.', 'Es un cuarto para las cinco. | Son un cuarto para las cinco. | Son las cinco menos cuarto. | Son las cuatro y cuarenta y cinco.'],
+    ['Сейчас 4:50.', 'Son diez para las cinco. | Son las cinco menos diez. | Son las cuatro y cincuenta.'],
+    ['Во сколько начинается смена?', '¿A qué hora empieza el turno? | ¿A qué hora comienza el turno?'],
+    ['Смена начинается в 7 утра.', 'El turno empieza a las siete de la mañana. | El turno comienza a las siete de la mañana.'],
+    ['Мастерская закрывается в 18:00.', 'El taller cierra a las seis de la tarde. | El taller cierra a las dieciocho horas. | El taller cierra a las seis.'],
+    ['Встреча в 12:00, в полдень.', 'La reunión es a las doce, al mediodía. | La reunión es al mediodía. | La reunión es a las doce del día.'],
+    ['Я сплю до 7:30.', 'Duermo hasta las siete y media. | Duermo hasta las siete y treinta.'],
+    ['Было 10 вечера.', 'Eran las diez de la noche.'],
+  ],
+  dr: [
+    ['Сейчас 2:00.', 'Son las dos. | Son las dos en punto.'],
+    ['Сейчас 1:30.', 'Es la una y media. | Es la una y treinta.'],
+    ['Сейчас 5:10.', 'Son las cinco y diez.'],
+    ['Сейчас 7:15.', 'Son las siete y cuarto. | Son las siete y quince.'],
+    ['Сейчас 8:25.', 'Son las ocho y veinticinco.'],
+    ['Сейчас 9:40.', 'Son veinte para las diez. | Son las diez menos veinte. | Son las nueve y cuarenta.'],
+    ['Сейчас 10:45.', 'Es un cuarto para las once. | Son un cuarto para las once. | Son las once menos cuarto. | Son las diez y cuarenta y cinco.'],
+    ['Сейчас 11:55.', 'Son cinco para las doce. | Son las doce menos cinco. | Son las once y cincuenta y cinco.'],
+    ['Сейчас 12:50.', 'Son diez para la una. | Es la una menos diez. | Son las doce y cincuenta.'],
+    ['Сейчас ровно 6.', 'Son las seis en punto.'],
+    ['Во сколько ты начинаешь работать?', '¿A qué hora empiezas a trabajar? | ¿A qué hora comienzas a trabajar? | ¿A qué hora entras a trabajar?'],
+    ['Я начинаю в 8:30.', 'Empiezo a las ocho y media. | Comienzo a las ocho y media. | Empiezo a las ocho y treinta. | Entro a las ocho y media.'],
+    ['Я заканчиваю в 18:00.', 'Termino a las seis de la tarde. | Termino a las seis. | Termino a las dieciocho horas.'],
+    ['Я работаю с 9 до 6.', 'Trabajo de nueve a seis. | Trabajo de las nueve a las seis.'],
+    ['Утренняя смена — с 6:00 до 14:00.', 'El turno de la mañana es de seis de la mañana a dos de la tarde. | El turno de la mañana es de las seis a las dos. | El turno de mañana es de seis a dos. | El turno de la mañana es de seis a dos.'],
+    ['Ночная смена начинается в 22:00.', 'El turno de noche empieza a las diez de la noche. | El turno de la noche empieza a las diez de la noche. | El turno de noche comienza a las diez de la noche.'],
+    ['Водитель пришёл в 7:20.', 'El conductor llegó a las siete y veinte. | El chofer llegó a las siete y veinte.'],
+    ['Машина будет готова в 16:00.', 'El auto va a estar listo a las cuatro de la tarde. | El auto estará listo a las cuatro de la tarde. | El auto va a estar listo a las cuatro.'],
+    ['Встреча в час дня.', 'La reunión es a la una de la tarde. | La reunión es a la una.'],
+    ['Встреча в 3:30 дня.', 'La reunión es a las tres y media de la tarde. | La reunión es a las tres y treinta de la tarde.'],
+    ['Офис открывается в 9 утра.', 'La oficina abre a las nueve de la mañana.'],
+    ['Было 2 часа ночи.', 'Eran las dos de la mañana. | Eran las dos de la madrugada.'],
+    ['Ты придёшь в 11:15?', '¿Vas a venir a las once y cuarto? | ¿Vas a venir a las once y quince? | ¿Vienes a las once y cuarto? | ¿Vienes a las once y quince? | ¿Vendrás a las once y cuarto?'],
+    ['Нет, я приду в полдень.', 'No, voy a venir al mediodía. | No, vengo al mediodía. | No, vendré al mediodía.'],
+    ['Во сколько закрывается мастерская?', '¿A qué hora cierra el taller?'],
+    ['Мы закрываем в полночь.', 'Cerramos a medianoche. | Cerramos a la medianoche.'],
+  ],
+  st: [
+    ['Мой день начинается в 6:30.', 'Mi día empieza a las seis y media. | Mi día comienza a las seis y media. | Mi día empieza a las seis y treinta.'],
+    ['В 7:00 начинается утренняя смена.', 'A las siete empieza el turno de la mañana. | A las siete comienza el turno de la mañana. | A las siete empieza el turno de mañana.'],
+    ['В 9:15 я звоню в мастерскую.', 'A las nueve y cuarto llamo al taller. | A las nueve y quince llamo al taller.'],
+    ['Механик говорит, что машина будет готова в 15:00.', 'El mecánico dice que el auto va a estar listo a las tres de la tarde. | El mecánico dice que el auto estará listo a las tres de la tarde. | El mecánico dice que el auto va a estar listo a las tres.'],
+    ['Но в 14:45 машины ещё нет.', 'Pero a un cuarto para las tres el auto todavía no está. | Pero a las tres menos cuarto el auto todavía no está. | Pero a las dos y cuarenta y cinco el auto todavía no está. | Pero a un cuarto para las tres el auto aún no está.'],
+    ['Машина приезжает только в 17:20.', 'El auto llega recién a las cinco y veinte. | El auto llega solo a las cinco y veinte. | El auto llega a las cinco y veinte.'],
+    ['В 22:00 начинается ночная смена.', 'A las diez de la noche empieza el turno de noche. | A las diez de la noche comienza el turno de noche. | A las diez de la noche empieza el turno de la noche.'],
+  ],
+});
+
+L(283, {
+  t: 'Даты, дни недели, порядковые. Патенты',
+  g: 'números · fechas · primero–décimo',
+  rules: [
+    ['Дни недели', 'lunes, martes, miércoles, jueves, viernes, sábado, domingo — с маленькой буквы. el lunes — в понедельник, los lunes — по понедельникам. Без предлога en!'],
+    ['Месяцы', 'enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre — тоже с маленькой буквы.'],
+    ['el + число + de + месяц + de + год', 'el cinco de octubre de dos mil veintiséis. Первое число — el primero de octubre (в Чили обычно primero, можно uno). ¿Qué fecha es hoy? — Hoy es cinco de octubre.'],
+    ['Порядковые 1–10', 'primero, segundo, tercero, cuarto, quinto, sexto, séptimo, octavo, noveno, décimo. Согласуются: la segunda semana. Перед сущ. м. р. primero → primer, tercero → tercer: el primer piso, el tercer día.'],
+    ['Патенты', 'Чилийская патента: 4 буквы + 2 цифры (BBCL24) или старая — 2 буквы + 4 цифры (HJ4512). Буквы — по-испански (be, ce, ele, ka…), цифры — числом или по одной: veinticuatro / dos cuatro.'],
+  ],
+  words: [['el lunes', 'понедельник; в понедельник'], ['el miércoles', 'среда'], ['el sábado', 'суббота'], ['el domingo', 'воскресенье'], ['enero', 'январь'], ['septiembre', 'сентябрь'], ['la fecha', 'дата'], ['el primero de…', 'первое (число)'], ['primer / primera', 'первый / первая'], ['segundo / segunda', 'второй / вторая'], ['tercer / tercera', 'третий / третья'], ['quinto', 'пятый'], ['décimo', 'десятый'], ['el piso', 'этаж'], ['la patente', 'номер машины (Чили)'], ['el feriado', 'праздничный день']],
+  forms: null,
+  num: [{type:'date', year:true}],
+  ex: [
+    ['Какое сегодня число?', '¿Qué fecha es hoy? | ¿A qué fecha estamos?'],
+    ['Сегодня 5 октября.', 'Hoy es cinco de octubre. | Hoy es el cinco de octubre. | Estamos a cinco de octubre.'],
+    ['Сегодня 1 октября.', 'Hoy es primero de octubre. | Hoy es el primero de octubre. | Hoy es uno de octubre. | Hoy es el uno de octubre.'],
+    ['5 октября 2026 года.', 'El cinco de octubre de dos mil veintiséis. | Cinco de octubre de dos mil veintiséis.'],
+    ['Какой сегодня день недели?', '¿Qué día es hoy?'],
+    ['Сегодня понедельник.', 'Hoy es lunes.'],
+    ['В пятницу у меня встреча.', 'El viernes tengo una reunión.'],
+    ['По субботам мастерская закрыта.', 'Los sábados el taller está cerrado. | El taller está cerrado los sábados.'],
+    ['Мой день рождения — 21 марта.', 'Mi cumpleaños es el veintiuno de marzo.'],
+    ['Офис на третьем этаже.', 'La oficina está en el tercer piso.'],
+    ['Это вторая неделя месяца.', 'Es la segunda semana del mes.'],
+    ['Первый день смены.', 'El primer día del turno. | El primer día de turno.'],
+    ['Номер машины — BB CL 24.', 'La patente es be be ce ele veinticuatro. | La patente es be be ce ele dos cuatro.'],
+    ['Номер машины — GH JK 58.', 'La patente es ge hache jota ka cincuenta y ocho. | La patente es ge hache jota ka cinco ocho.'],
+  ],
+  dr: [
+    ['Сегодня 12 февраля.', 'Hoy es doce de febrero. | Hoy es el doce de febrero. | Estamos a doce de febrero.'],
+    ['Завтра 1 мая.', 'Mañana es primero de mayo. | Mañana es el primero de mayo. | Mañana es uno de mayo. | Mañana es el uno de mayo.'],
+    ['18 сентября — праздник в Чили.', 'El dieciocho de septiembre es feriado en Chile. | El dieciocho de septiembre es fiesta en Chile.'],
+    ['Я родился 3 июля 1990 года.', 'Nací el tres de julio de mil novecientos noventa.'],
+    ['Компания открылась 15 января 2019 года.', 'La empresa abrió el quince de enero de dos mil diecinueve.'],
+    ['Машину вернут 22 октября.', 'Van a devolver el auto el veintidós de octubre. | Devuelven el auto el veintidós de octubre. | Devolverán el auto el veintidós de octubre.'],
+    ['Ремонт закончится 30 ноября.', 'La reparación va a terminar el treinta de noviembre. | La reparación terminará el treinta de noviembre.'],
+    ['Отчёт — каждый понедельник.', 'El informe es todos los lunes. | El reporte es todos los lunes.'],
+    ['Во вторник и в четверг.', 'El martes y el jueves.'],
+    ['По средам я в мастерской.', 'Los miércoles estoy en el taller.'],
+    ['В воскресенье я не работаю.', 'El domingo no trabajo.'],
+    ['В субботу мы работаем до часа.', 'El sábado trabajamos hasta la una.'],
+    ['Первый водитель.', 'El primer conductor. | El primer chofer.'],
+    ['Первая неделя.', 'La primera semana.'],
+    ['Третий день.', 'El tercer día.'],
+    ['Четвёртый этаж.', 'El cuarto piso.'],
+    ['Пятая машина в очереди.', 'El quinto auto de la fila. | El quinto auto en la fila.'],
+    ['Шестой месяц.', 'El sexto mes.'],
+    ['Седьмая смена.', 'El séptimo turno.'],
+    ['Восьмой раз.', 'La octava vez.'],
+    ['Девятый день ремонта.', 'El noveno día de reparación. | El noveno día de la reparación.'],
+    ['Это десятый штраф в этом месяце.', 'Es la décima multa de este mes. | Es la décima multa este mes.'],
+    ['Какой номер у машины?', '¿Cuál es la patente del auto? | ¿Qué patente tiene el auto?'],
+    ['Номер машины — KL PR 37.', 'La patente es ka ele pe erre treinta y siete. | La patente es ka ele pe erre tres siete.'],
+    ['Номер машины — DF TS 90.', 'La patente es de efe te ese noventa. | La patente es de efe te ese nueve cero.'],
+    ['Номер машины — HJ 4512.', 'La patente es hache jota cuarenta y cinco doce. | La patente es hache jota cuatro cinco uno dos.'],
+  ],
+  st: [
+    ['Сегодня понедельник, 5 октября.', 'Hoy es lunes cinco de octubre. | Hoy es lunes, cinco de octubre.'],
+    ['Машина с номером KL PR 37 стоит в мастерской.', 'El auto con patente ka ele pe erre treinta y siete está en el taller. | El auto patente ka ele pe erre treinta y siete está en el taller.'],
+    ['Это уже вторая неделя.', 'Ya es la segunda semana.'],
+    ['Мастерская говорит, что машина будет готова 9 октября.', 'El taller dice que el auto va a estar listo el nueve de octubre. | El taller dice que el auto estará listo el nueve de octubre.'],
+    ['Это пятница.', 'Es viernes.'],
+    ['Но 12 октября — праздник.', 'Pero el doce de octubre es feriado.'],
+    ['Если нет, водитель потеряет третью неделю.', 'Si no, el conductor va a perder la tercera semana. | Si no, el conductor perderá la tercera semana. | Si no, el chofer va a perder la tercera semana.'],
+  ],
+});
+
+L(285, {
+  t: 'Проценты, дроби, десятичные',
+  g: 'números · % · coma · fracciones',
+  rules: [
+    ['por ciento', '10 % = diez por ciento, 100 % = cien por ciento. С артиклем: el veinte por ciento de los autos. Рост/снижение: subir / bajar un cinco por ciento.'],
+    ['del … por ciento', 'Скидка, комиссия, налог: un descuento del quince por ciento, la comisión es del veinte por ciento, el IVA es del diecinueve por ciento.'],
+    ['coma — десятичная', 'В Чили дробную часть отделяют запятой: 2,5 = dos coma cinco; 1,75 = uno coma setenta y cinco; 0,5 = cero coma cinco. dos coma cinco litros.'],
+    ['medio / media и la mitad', 'medio — прилагательное, согласуется: medio litro, media hora, un día y medio, dos horas y media. la mitad — существительное: la mitad de los autos.'],
+    ['Дроби', 'un tercio (1/3), un cuarto (1/4), dos tercios (2/3), tres cuartos (3/4), un quinto (1/5). Также: la tercera parte, la cuarta parte.'],
+  ],
+  words: [['por ciento', 'процент(ов)'], ['el porcentaje', 'процент, доля'], ['la coma', 'запятая'], ['medio / media', 'половина (прил.), пол-'], ['la mitad', 'половина'], ['un tercio', 'треть'], ['un cuarto', 'четверть'], ['tres cuartos', 'три четверти'], ['el descuento', 'скидка'], ['la comisión', 'комиссия'], ['el aumento', 'рост, повышение'], ['el gasto', 'расход'], ['el litro', 'литр'], ['el consumo', 'расход (топлива)'], ['la bencina', 'бензин (Чили)']],
+  forms: null,
+  num: [{type:'percent'}, {type:'decimal'}],
+  ex: [
+    ['10 %.', 'Diez por ciento.'],
+    ['25 %.', 'Veinticinco por ciento.'],
+    ['100 %.', 'Cien por ciento.'],
+    ['Скидка — 15 %.', 'El descuento es del quince por ciento. | El descuento es de quince por ciento. | Hay un descuento del quince por ciento.'],
+    ['Комиссия — 20 %.', 'La comisión es del veinte por ciento. | La comisión es de veinte por ciento.'],
+    ['30 % машин в мастерской.', 'El treinta por ciento de los autos está en el taller. | El treinta por ciento de los autos están en el taller.'],
+    ['Расходы выросли на 5 %.', 'Los gastos subieron un cinco por ciento. | Los gastos aumentaron un cinco por ciento. | Los gastos aumentaron en un cinco por ciento. | Los gastos subieron cinco por ciento.'],
+    ['2,5 литра.', 'Dos coma cinco litros. | Dos litros y medio.'],
+    ['1,75.', 'Uno coma setenta y cinco.'],
+    ['Пол-литра.', 'Medio litro.'],
+    ['Полчаса.', 'Media hora.'],
+    ['Половина водителей.', 'La mitad de los conductores. | La mitad de los choferes.'],
+    ['Треть бюджета.', 'Un tercio del presupuesto. | La tercera parte del presupuesto.'],
+    ['Три четверти автопарка.', 'Tres cuartos de la flota. | Las tres cuartas partes de la flota.'],
+  ],
+  dr: [
+    ['50 %.', 'Cincuenta por ciento.'],
+    ['НДС в Чили — 19 %.', 'El IVA en Chile es del diecinueve por ciento. | En Chile el IVA es del diecinueve por ciento. | El IVA en Chile es de diecinueve por ciento.'],
+    ['Скидка 10 % на шины.', 'Un descuento del diez por ciento en los neumáticos. | Descuento del diez por ciento en neumáticos. | Un descuento de diez por ciento en los neumáticos.'],
+    ['Мастерская даёт нам скидку 12 %.', 'El taller nos da un descuento del doce por ciento. | El taller nos da un descuento de doce por ciento. | El taller nos hace un descuento del doce por ciento.'],
+    ['Водитель получает 40 %.', 'El conductor recibe el cuarenta por ciento. | El chofer recibe el cuarenta por ciento. | El conductor gana el cuarenta por ciento.'],
+    ['Компания получает 60 %.', 'La empresa recibe el sesenta por ciento.'],
+    ['Расходы выросли на 8 %.', 'Los gastos subieron un ocho por ciento. | Los gastos aumentaron un ocho por ciento. | Los gastos aumentaron en un ocho por ciento. | Los gastos subieron ocho por ciento.'],
+    ['Цена бензина выросла на 3 %.', 'El precio de la bencina subió un tres por ciento. | El precio de la bencina aumentó un tres por ciento. | La bencina subió un tres por ciento.'],
+    ['90 % машин на ходу.', 'El noventa por ciento de los autos está operativo. | El noventa por ciento de los autos están operativos. | El noventa por ciento de los autos funciona. | El noventa por ciento de los autos funcionan.'],
+    ['Мы выполнили план на 100 %.', 'Cumplimos el plan al cien por ciento. | Cumplimos la meta al cien por ciento.'],
+    ['Расход — 7,5 литра на 100 километров.', 'El consumo es de siete coma cinco litros cada cien kilómetros. | El consumo es de siete coma cinco litros por cada cien kilómetros. | El consumo es de siete litros y medio cada cien kilómetros.'],
+    ['3,2 литра.', 'Tres coma dos litros.'],
+    ['0,5 литра.', 'Cero coma cinco litros. | Medio litro.'],
+    ['1,5 часа.', 'Una hora y media. | Uno coma cinco horas.'],
+    ['4,8.', 'Cuatro coma ocho.'],
+    ['12,25.', 'Doce coma veinticinco.'],
+    ['Половина машин в мастерской.', 'La mitad de los autos está en el taller. | La mitad de los autos están en el taller.'],
+    ['Половина смены.', 'La mitad del turno. | Medio turno.'],
+    ['Я ждал полчаса.', 'Esperé media hora.'],
+    ['Ремонт занял полтора дня.', 'La reparación tomó un día y medio. | La reparación demoró un día y medio. | La reparación duró un día y medio.'],
+    ['Треть водителей — новые.', 'Un tercio de los conductores son nuevos. | Un tercio de los conductores es nuevo. | La tercera parte de los conductores son nuevos. | Un tercio de los choferes son nuevos.'],
+    ['Четверть машин — гибриды.', 'Un cuarto de los autos son híbridos. | La cuarta parte de los autos son híbridos. | Un cuarto de los autos es híbrido.'],
+    ['Две трети бюджета — ремонт.', 'Dos tercios del presupuesto son reparaciones. | Dos tercios del presupuesto son para reparaciones. | Las dos terceras partes del presupuesto son reparaciones.'],
+    ['Бак заполнен на три четверти.', 'El estanque está a tres cuartos. | El estanque está lleno en tres cuartos. | El estanque está a tres cuartos de su capacidad.'],
+    ['Бак заполнен наполовину.', 'El estanque está a la mitad. | El estanque está medio lleno.'],
+    ['Комиссия — 2,5 %.', 'La comisión es del dos coma cinco por ciento. | La comisión es de dos coma cinco por ciento.'],
+  ],
+  st: [
+    ['Каждый месяц я готовлю отчёт для начальника.', 'Cada mes preparo un informe para mi jefe. | Todos los meses preparo un informe para mi jefe. | Cada mes preparo un reporte para mi jefe. | Cada mes preparo un informe para el jefe.'],
+    ['В сентябре расходы выросли на 7 %.', 'En septiembre los gastos subieron un siete por ciento. | En septiembre los gastos aumentaron un siete por ciento. | En septiembre los gastos aumentaron en un siete por ciento.'],
+    ['Треть расходов — ремонт в мастерских.', 'Un tercio de los gastos son reparaciones en los talleres. | La tercera parte de los gastos son reparaciones en los talleres. | Un tercio de los gastos son reparaciones en talleres.'],
+    ['Бензин подорожал на 2,5 %.', 'La bencina subió un dos coma cinco por ciento. | La bencina subió dos coma cinco por ciento.'],
+    ['Но мастерская дала нам скидку 10 %.', 'Pero el taller nos dio un descuento del diez por ciento. | Pero el taller nos dio un descuento de diez por ciento. | Pero el taller nos hizo un descuento del diez por ciento.'],
+    ['Теперь половина машин — новые.', 'Ahora la mitad de los autos son nuevos. | La mitad de los autos ahora son nuevos. | Ahora la mitad de los autos es nueva.'],
+    ['В следующем месяце расходы будут на 5 % ниже.', 'El próximo mes los gastos van a ser un cinco por ciento más bajos. | El mes próximo los gastos van a ser un cinco por ciento más bajos. | El próximo mes los gastos serán un cinco por ciento más bajos.'],
   ],
 });
 
@@ -9627,7 +10606,7 @@ const I18N_EN = {
 "Они сказали, что помоют посуду.": "They said they would wash the dishes.",
 "Я бы помыл посуду, но нет воды.": "I would wash the dishes, but there is no water.",
 "Ты бы помыл сегодня посуду?": "Would you wash the dishes today?",
-"Во сколько ты начинаешь работать?": "What time do you start working?",
+"Во сколько ты начинаешь работать?": "What time do you start work?",
 "В этом месяце я начал учить испанский.": "This month I have started studying Spanish.",
 "Ты уже начал писать книгу?": "Have you already started writing the book?",
 "Фильм уже начался.": "The movie has already started.",
@@ -10705,7 +11684,7 @@ const I18N_EN = {
 "письменный стол": "desk",
 "иметь": "to have",
 "видеть": "to see",
-"есть, имеется": "there is, there are",
+"есть, имеется": "there is / there are",
 "El / la / los / las: дом": "El / la / los / las: the house",
 "el + м.р., la + ж.р.": "el + masc., la + fem.",
 "Конкретный, тот самый: el sofá, la ventana. Множественное: los, las.": "Specific, that very one: el sofá, la ventana. Plural: los, las.",
@@ -11689,7 +12668,894 @@ const I18N_EN = {
 "Загружаю курс…": "Loading the course…",
 "Время занятий сегодня": "Study time today",
 "Уровни курса": "Course levels",
-"Испанский": "Spanish"
+"Испанский": "Spanish",
+"Числа": "Numbers",
+"0–100: возраст, телефоны, цены": "0–100: age, phone numbers, prices",
+"100–999: сотни, километры": "100–999: hundreds, kilometers",
+"Тысячи и миллионы: песо, годы": "Thousands and millions: pesos, years",
+"Время, даты, проценты": "Time, dates, percentages",
+"Напишите словами": "Write it in words",
+"Ещё раз": "Again",
+"Послушайте и запишите цифрами": "Listen and write it in digits",
+"Начать тренировку чисел": "Start number practice",
+"Числа 0–20. Возраст и телефон": "Numbers 0–20. Age and phone number",
+"números · 0–20": "numbers · 0–20",
+"0–10": "0–10",
+"cero, uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez. Учим наизусть, это база для всех остальных чисел.": "cero, uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez. Learn them by heart: they are the basis for all other numbers.",
+"11–15 — отдельные слова": "11–15 are separate words",
+"once, doce, trece, catorce, quince. Их тоже просто запоминаем.": "once, doce, trece, catorce, quince. Just memorize them too.",
+"16–19 = dieci + число": "16–19 = dieci + number",
+"dieciséis (с ударением!), diecisiete, dieciocho, diecinueve — одним словом. 20 — veinte.": "dieciséis (with an accent!), diecisiete, dieciocho, diecinueve — written as one word. 20 is veinte.",
+"uno → un / una": "uno → un / una",
+"При счёте — uno. Перед существительным мужского рода — un: un auto, un taller. Перед женским — una: una persona, una semana.": "When counting: uno. Before a masculine noun: un — un auto, un taller. Before a feminine noun: una — una persona, una semana.",
+"Tengo + число + años": "Tengo + number + años",
+"Возраст — через tener: ¿Cuántos años tienes? — Tengo veinte años. Mi hijo tiene siete años. Не «soy veinte».": "Age uses tener: ¿Cuántos años tienes? — Tengo veinte años. Mi hijo tiene siete años. Never «soy veinte».",
+"Телефон по одной цифре": "Phone number digit by digit",
+"Номер можно диктовать по цифре: 9 5 4 3 → nueve, cinco, cuatro, tres; 0 — cero. Вопрос: ¿Cuál es tu número de teléfono? / ¿Cuál es tu celular?": "A number can be dictated one digit at a time: 9 5 4 3 → nueve, cinco, cuatro, tres; 0 is cero. Question: ¿Cuál es tu número de teléfono? / ¿Cuál es tu celular?",
+"ноль": "zero",
+"один / одна": "one",
+"пять": "five",
+"десять": "ten",
+"одиннадцать": "eleven",
+"двенадцать": "twelve",
+"пятнадцать": "fifteen",
+"шестнадцать": "sixteen",
+"девятнадцать": "nineteen",
+"двадцать": "twenty",
+"число, номер": "number",
+"год": "year",
+"мобильный телефон": "cell phone",
+"сколько?": "how many?",
+"номер телефона": "phone number",
+"0, 1, 2, 3, 4, 5.": "0, 1, 2, 3, 4, 5.",
+"6, 7, 8, 9, 10.": "6, 7, 8, 9, 10.",
+"11, 12, 13, 14, 15.": "11, 12, 13, 14, 15.",
+"16, 17, 18, 19, 20.": "16, 17, 18, 19, 20.",
+"Сколько тебе лет?": "How old are you?",
+"Мне 20 лет.": "I'm 20 years old.",
+"Моей дочери 16 лет.": "My daughter is 16 years old.",
+"У меня одна машина.": "I have one car.",
+"У нас один офис и одна мастерская.": "We have one office and one workshop.",
+"Сколько машин в мастерской?": "How many cars are there at the workshop?",
+"В мастерской 12 машин.": "There are 12 cars at the workshop.",
+"Какой у тебя номер телефона?": "What's your phone number?",
+"Мой номер — 9 5 4 3 2 1 0 8 7.": "My number is 9 5 4 3 2 1 0 8 7.",
+"У меня 15 дней отпуска.": "I have 15 days of vacation.",
+"Мне 18 лет.": "I'm 18 years old.",
+"Ему 17 лет.": "He is 17 years old.",
+"Ей 19 лет.": "She is 19 years old.",
+"Ей 15 лет.": "She is 15 years old.",
+"Моему сыну 6 лет.": "My son is 6 years old.",
+"Сколько лет твоей дочери?": "How old is your daughter?",
+"Моей дочери 11 лет.": "My daughter is 11 years old.",
+"У меня 2 сына.": "I have 2 sons.",
+"У нас 14 машин.": "We have 14 cars.",
+"В мастерской 3 машины.": "There are 3 cars at the workshop.",
+"Сегодня работают 13 водителей.": "13 drivers are working today.",
+"Сколько водителей сегодня?": "How many drivers are there today?",
+"Сегодня 20 водителей.": "There are 20 drivers today.",
+"У меня один вопрос.": "I have one question.",
+"Один день и одна неделя.": "One day and one week.",
+"Здесь только одна машина.": "There is only one car here.",
+"В неделе 7 дней.": "A week has 7 days.",
+"У меня 10 минут.": "I have 10 minutes.",
+"Мне нужны 4 шины.": "I need 4 tires.",
+"Машина номер 5 в мастерской.": "Car number 5 is at the workshop.",
+"Мой номер — 9 7 6 5 4 3 2 1 0.": "My number is 9 7 6 5 4 3 2 1 0.",
+"Телефон офиса — 2 2 4 0 0 1 5 8.": "The office phone is 2 2 4 0 0 1 5 8.",
+"У тебя 2 машины?": "Do you have 2 cars?",
+"Нет, у меня одна машина.": "No, I have one car.",
+"2 : 0 в пользу «Коло-Коло».": "2–0 to Colo-Colo.",
+"В этом месяце 16 ремонтов.": "There are 16 repairs this month.",
+"У меня 12 сообщений.": "I have 12 messages.",
+"Меня зовут Пабло, мне 20 лет.": "My name is Pablo, I'm 20 years old.",
+"Я водитель такси в Сантьяго.": "I'm a taxi driver in Santiago.",
+"В нашем автопарке 18 машин.": "There are 18 cars in our fleet.",
+"Сегодня 2 машины в мастерской.": "Today 2 cars are at the workshop.",
+"У меня одна сестра, ей 13 лет.": "I have one sister, she is 13 years old.",
+"Мой номер телефона — 9 6 5 4 3 2 1 0 8.": "My phone number is 9 6 5 4 3 2 1 0 8.",
+"Я работаю 10 часов в день.": "I work 10 hours a day.",
+"Числа 21–100. veintiún / veintiuna": "Numbers 21–100. veintiún / veintiuna",
+"números · 21–100": "numbers · 21–100",
+"21–29 — одним словом": "21–29 are one word",
+"veintiuno, veintidós, veintitrés, veinticuatro, veinticinco, veintiséis, veintisiete, veintiocho, veintinueve. Ударение: veintidós, veintitrés, veintiséis.": "veintiuno, veintidós, veintitrés, veinticuatro, veinticinco, veintiséis, veintisiete, veintiocho, veintinueve. Accents: veintidós, veintitrés, veintiséis.",
+"Десятки": "Tens",
+"treinta (30), cuarenta (40), cincuenta (50), sesenta (60), setenta (70), ochenta (80), noventa (90).": "treinta (30), cuarenta (40), cincuenta (50), sesenta (60), setenta (70), ochenta (80), noventa (90).",
+"31–99 = десяток + y + единица": "31–99 = ten + y + unit",
+"Тремя словами: treinta y uno, cuarenta y cinco, noventa y nueve. «y» стоит только между десятками и единицами.": "Three words: treinta y uno, cuarenta y cinco, noventa y nueve. «y» goes only between the tens and the units.",
+"veintiún / veintiuna": "veintiún / veintiuna",
+"Перед мужским родом: veintiún autos, treinta y un días. Перед женским: veintiuna personas, cuarenta y una semanas. При счёте: veintiuno, treinta y uno.": "Before a masculine noun: veintiún autos, treinta y un días. Before a feminine noun: veintiuna personas, cuarenta y una semanas. When counting: veintiuno, treinta y uno.",
+"100 = cien": "100 = cien",
+"Ровно сто — cien: cien autos, cien personas, cien pesos. Не «ciento» и не «un cien».": "Exactly one hundred is cien: cien autos, cien personas, cien pesos. Not «ciento» and not «un cien».",
+"двадцать один": "twenty-one",
+"двадцать два": "twenty-two",
+"двадцать три": "twenty-three",
+"двадцать шесть": "twenty-six",
+"тридцать": "thirty",
+"сорок": "forty",
+"пятьдесят": "fifty",
+"шестьдесят": "sixty",
+"семьдесят": "seventy",
+"восемьдесят": "eighty",
+"девяносто": "ninety",
+"сто": "one hundred",
+"водитель": "driver",
+"человек": "person",
+"парковка": "parking lot",
+"21, 22, 23, 24, 25.": "21, 22, 23, 24, 25.",
+"26, 27, 28, 29, 30.": "26, 27, 28, 29, 30.",
+"40, 50, 60, 70, 80, 90, 100.": "40, 50, 60, 70, 80, 90, 100.",
+"31, 45, 99.": "31, 45, 99.",
+"Мне 21 год.": "I'm 21 years old.",
+"У нас 21 машина.": "We have 21 cars.",
+"Сегодня работает 21 человек.": "21 people are working today.",
+"В этом месяце 31 день.": "This month has 31 days.",
+"У нас 41 водитель.": "We have 41 drivers.",
+"Моему отцу 64 года.": "My father is 64 years old.",
+"В мастерской 32 машины.": "There are 32 cars at the workshop.",
+"Это 26 недель.": "That's 26 weeks.",
+"Это стоит 100 песо.": "It costs 100 pesos.",
+"В автопарке 100 машин.": "There are 100 cars in the fleet.",
+"Мне 22 года.": "I'm 22 years old.",
+"Ей 23 года.": "She is 23 years old.",
+"Ему 38 лет.": "He is 38 years old.",
+"Моей маме 56 лет.": "My mother is 56 years old.",
+"Моему дедушке 87 лет.": "My grandfather is 87 years old.",
+"У нас 47 машин.": "We have 47 cars.",
+"В автопарке 32 машины.": "There are 32 cars in the fleet.",
+"В мастерской 21 машина.": "There are 21 cars at the workshop.",
+"Сегодня на смене 31 водитель.": "Today there are 31 drivers on shift.",
+"В офисе работает 21 женщина.": "21 women work in the office.",
+"Ремонт занимает 21 день.": "The repair takes 21 days.",
+"У меня 81 сообщение.": "I have 81 messages.",
+"Это 41 страница.": "That's 41 pages.",
+"Это 91 километр.": "That's 91 kilometers.",
+"В январе 31 день.": "January has 31 days.",
+"В апреле 30 дней.": "April has 30 days.",
+"Мы ждём 45 минут.": "We wait 45 minutes.",
+"Мы работаем 44 часа в неделю.": "We work 44 hours a week.",
+"У нас 100 водителей.": "We have 100 drivers.",
+"В автопарке будет 100 машин.": "There will be 100 cars in the fleet.",
+"На парковке 73 машины.": "There are 73 cars in the parking lot.",
+"Сколько машин на парковке?": "How many cars are there in the parking lot?",
+"Сколько человек в офисе?": "How many people are there in the office?",
+"В офисе 28 человек.": "There are 28 people in the office.",
+"68 и 79.": "68 and 79.",
+"У меня 52 контакта в телефоне.": "I have 52 contacts on my phone.",
+"В нашем автопарке 61 машина.": "Our fleet has 61 cars.",
+"И 72 водителя.": "And 72 drivers.",
+"Сегодня в мастерской 21 машина.": "Today there are 21 cars at the workshop.",
+"Это много: 21 из 61!": "That's a lot: 21 out of 61!",
+"Мой начальник хочет 100 машин.": "My boss wants 100 cars.",
+"Но в офисе только 24 человека.": "But there are only 24 people in the office.",
+"Мы работаем 45 часов в неделю.": "We work 45 hours a week.",
+"Цены и количество до 100. Телефон парами": "Prices and quantities up to 100. Phone numbers in pairs",
+"números · precios · teléfono": "numbers · prices · phone",
+"¿Cuánto cuesta…? — Cuesta…": "¿Cuánto cuesta…? — Cuesta…",
+"Цена одной вещи: ¿Cuánto cuesta el filtro? — Cuesta veinte dólares. Нескольких: ¿Cuánto cuestan los neumáticos? — Cuestan ochenta dólares.": "Price of one thing: ¿Cuánto cuesta el filtro? — Cuesta veinte dólares. Of several things: ¿Cuánto cuestan los neumáticos? — Cuestan ochenta dólares.",
+"¿Cuánto es? — Son…": "¿Cuánto es? — Son…",
+"Сколько с меня: ¿Cuánto es? — Son cincuenta dólares. Цена во множественном числе: son + сумма.": "How much do I owe: ¿Cuánto es? — Son cincuenta dólares. The amount is plural: son + sum.",
+"¿Cuántos / cuántas…? — Hay…": "¿Cuántos / cuántas…? — Hay…",
+"Количество: ¿Cuántos autos hay? — Hay cuarenta y dos autos. ¿Cuántas multas hay? — Hay veintiuna multas. cuántos/cuántas согласуется с родом.": "Quantity: ¿Cuántos autos hay? — Hay cuarenta y dos autos. ¿Cuántas multas hay? — Hay veintiuna multas. cuántos/cuántas agrees in gender.",
+"Телефон парами": "Phone number in pairs",
+"Мобильный в Чили: +56 9 XXXX XXXX. Часто диктуют парами: 9 87 65 43 21 → nueve, ochenta y siete, sesenta y cinco, cuarenta y tres, veintiuno. +56 — más cincuenta y seis.": "A Chilean cell number: +56 9 XXXX XXXX. It is often dictated in pairs: 9 87 65 43 21 → nueve, ochenta y siete, sesenta y cinco, cuarenta y tres, veintiuno. +56 is más cincuenta y seis.",
+"Ноль в паре": "Zero in a pair",
+"Если пара начинается с нуля, читают по цифрам: 05 → cero cinco. 00 — cero cero или doble cero.": "If a pair starts with zero, read it digit by digit: 05 → cero cinco. 00 is cero cero or doble cero.",
+"UF и luca": "UF and luca",
+"UF (u efe) — чилийская расчётная единица, в UF считают франшизу страховки: cinco UF. Разговорно 1000 песо = una luca, veinte lucas = 20 000 песо.": "The UF (u efe) is a Chilean unit of account; insurance deductibles are counted in UF: cinco UF. Colloquially 1,000 pesos = una luca, veinte lucas = 20,000 pesos.",
+"сколько стоит?": "how much does it cost?",
+"сколько стоят?": "how much do they cost?",
+"сколько с меня?": "how much is it?",
+"цена": "price",
+"песо": "peso",
+"доллар": "dollar",
+"плюс (+)": "plus (+)",
+"код": "code",
+"UF — чилийская расчётная единица": "UF — Chilean unit of account",
+"франшиза (страховка)": "deductible (insurance)",
+"тысяча песо (разг.)": "a thousand pesos (colloquial)",
+"дешёвый / дорогой": "cheap / expensive",
+"штраф": "fine",
+"Сколько стоит фильтр?": "How much does the filter cost?",
+"Он стоит 25 долларов.": "It costs 25 dollars.",
+"Сколько стоят шины?": "How much do the tires cost?",
+"Они стоят 80 долларов.": "They cost 80 dollars.",
+"Сколько с меня?": "How much do I owe?",
+"С вас 50 долларов.": "That's 50 dollars.",
+"Франшиза — 5 UF.": "The deductible is 5 UF.",
+"Сколько машин в автопарке?": "How many cars are there in the fleet?",
+"Есть 87 машин.": "There are 87 cars.",
+"Сколько смен в неделю?": "How many shifts are there per week?",
+"Мой номер: +56 9 87 65 43 21.": "My number is +56 9 87 65 43 21.",
+"Номер офиса: 2 23 45 67 89.": "The office number is 2 23 45 67 89.",
+"Код Чили — +56.": "The country code for Chile is +56.",
+"Это стоит 20 лук (разг.).": "It costs 20 lucas (colloquial).",
+"Сколько стоит масло?": "How much does the oil cost?",
+"Оно стоит 45 долларов.": "It costs 45 dollars.",
+"Сколько стоят фильтры?": "How much do the filters cost?",
+"Они стоят 12 долларов.": "They cost 12 dollars.",
+"Литр масла стоит 8 долларов.": "A liter of oil costs 8 dollars.",
+"Мойка стоит 10 долларов.": "The car wash costs 10 dollars.",
+"Шины стоят 100 долларов каждая.": "The tires cost 100 dollars each.",
+"С вас 60 долларов.": "That's 60 dollars.",
+"Это дорого? Нет, 15 долларов.": "Is it expensive? No, 15 dollars.",
+"Это дёшево: 30 лук.": "It's cheap: 30 lucas.",
+"Франшиза — 3 UF.": "The deductible is 3 UF.",
+"Франшиза — 10 UF?": "Is the deductible 10 UF?",
+"Сколько водителей сегодня работает?": "How many drivers are working today?",
+"Сегодня работают 64 водителя.": "64 drivers are working today.",
+"Сколько машин сегодня в мастерской?": "How many cars are at the workshop today?",
+"Там 9 машин.": "There are 9 cars.",
+"Сколько у тебя смен в неделю?": "How many shifts do you have a week?",
+"У меня 6 смен в неделю.": "I have 6 shifts a week.",
+"Сколько штрафов в этом месяце?": "How many fines are there this month?",
+"В этом месяце 21 штраф.": "There are 21 fines this month.",
+"У нас 99 машин, а не 100.": "We have 99 cars, not 100.",
+"Мой номер: +56 9 76 54 32 10.": "My number is +56 9 76 54 32 10.",
+"Номер водителя: 9 98 12 34 56.": "The driver's number is 9 98 12 34 56.",
+"Номер мастерской: 9 55 05 70 11.": "The workshop's number is 9 55 05 70 11.",
+"Номер: 9 41 00 22 88.": "The number is 9 41 00 22 88.",
+"Можешь повторить номер?": "Can you repeat the number?",
+"Это 9 87 или 9 78?": "Is it 9 87 or 9 78?",
+"Звонит механик из мастерской.": "The mechanic from the workshop calls.",
+"Его номер: +56 9 91 23 45 67.": "His number is +56 9 91 23 45 67.",
+"Он говорит, что фильтр стоит 18 долларов.": "He says the filter costs 18 dollars.",
+"А масло стоит 42 доллара.": "And the oil costs 42 dollars.",
+"Франшиза по страховке — 5 UF.": "The insurance deductible is 5 UF.",
+"Я спрашиваю, сколько наших машин у него.": "I ask him how many of our cars he has.",
+"У него 4 наши машины.": "He has 4 of our cars.",
+"Сотни: cien и ciento": "Hundreds: cien and ciento",
+"números · 100–999": "numbers · 100–999",
+"Ровно сто — cien: cien kilómetros, cien autos. Только 100, без продолжения.": "Exactly one hundred is cien: cien kilómetros, cien autos. Only for 100 with nothing after it.",
+"101–199 = ciento + …": "101–199 = ciento + …",
+"ciento uno, ciento diez, ciento cincuenta, ciento noventa y nueve. Отдельно «ciento» не говорят (кроме por ciento).": "ciento uno, ciento diez, ciento cincuenta, ciento noventa y nueve. «ciento» is not used on its own (except in por ciento).",
+"200–900 = число + cientos": "200–900 = number + cientos",
+"doscientos, trescientos, cuatrocientos, seiscientos, ochocientos — одним словом.": "doscientos, trescientos, cuatrocientos, seiscientos, ochocientos — written as one word.",
+"Неправильные: 500, 700, 900": "Irregular: 500, 700, 900",
+"quinientos (500), setecientos (700), novecientos (900) — не «cincocientos», «sietecientos», «nuevecientos».": "quinientos (500), setecientos (700), novecientos (900) — not «cincocientos», «sietecientos», «nuevecientos».",
+"Без «y» после сотен": "No «y» after hundreds",
+"y — только между десятками и единицами: trescientos cuarenta y dos, ciento cinco. Не «trescientos y cuarenta».": "y goes only between tens and units: trescientos cuarenta y dos, ciento cinco. Not «trescientos y cuarenta».",
+"сто один": "one hundred one",
+"сто пятьдесят": "one hundred fifty",
+"двести": "two hundred",
+"триста": "three hundred",
+"четыреста": "four hundred",
+"пятьсот": "five hundred",
+"шестьсот": "six hundred",
+"семьсот": "seven hundred",
+"восемьсот": "eight hundred",
+"девятьсот": "nine hundred",
+"километр": "kilometer",
+"метр": "meter",
+"поездка": "trip, ride",
+"100, 101, 110.": "100, 101, 110.",
+"150, 199.": "150, 199.",
+"200, 300, 400.": "200, 300, 400.",
+"500, 700, 900.": "500, 700, 900.",
+"600, 800.": "600, 800.",
+"342.": "342.",
+"Это 100 километров.": "That's 100 kilometers.",
+"Это 120 километров.": "That's 120 kilometers.",
+"До мастерской 500 метров.": "The workshop is 500 meters away.",
+"Машина проехала 700 километров.": "The car drove 700 kilometers.",
+"У нас 115 водителей.": "We have 115 drivers.",
+"Я живу в 900 метрах отсюда.": "I live 900 meters from here.",
+"Это 555, а не 505.": "It's 555, not 505.",
+"Номер 777.": "Number 777.",
+"101.": "101.",
+"116.": "116.",
+"230.": "230.",
+"375.": "375.",
+"480.": "480.",
+"512.": "512.",
+"666.": "666.",
+"709.": "709.",
+"822.": "822.",
+"999.": "999.",
+"Это 100 песо.": "That's 100 pesos.",
+"Это 150 километров.": "That's 150 kilometers.",
+"Машина проехала 300 километров.": "The car drove 300 kilometers.",
+"Вчера я проехал 260 километров.": "Yesterday I drove 260 kilometers.",
+"Мы проехали 400 километров.": "We drove 400 kilometers.",
+"До Вальпараисо 120 километров.": "It's 120 kilometers to Valparaíso.",
+"В следующем году у нас будет 150 машин.": "Next year we will have 150 cars.",
+"Это стоит 500 песо.": "It costs 500 pesos.",
+"Это стоит 700 песо.": "It costs 700 pesos.",
+"Это стоит 900 песо.": "It costs 900 pesos.",
+"У нас 104 водителя.": "We have 104 drivers.",
+"Машина номер 101 в мастерской.": "Car number 101 is at the workshop.",
+"Сегодня 140 поездок.": "There are 140 trips today.",
+"В неделе 168 часов.": "A week has 168 hours.",
+"В году 365 дней.": "A year has 365 days.",
+"Не 105, а 150.": "Not 105, but 150.",
+"Сегодня я еду в Ранкагуа.": "Today I'm going to Rancagua.",
+"До Ранкагуа 87 километров.": "It's 87 kilometers to Rancagua.",
+"Туда и обратно — 174 километра.": "There and back is 174 kilometers.",
+"Вчера я проехал 310 километров.": "Yesterday I drove 310 kilometers.",
+"В этом месяце машина проехала 950 километров.": "This month the car drove 950 kilometers.",
+"Скоро у нас будет 150 машин.": "Soon we will have 150 cars.",
+"И 180 водителей.": "And 180 drivers.",
+"Род сотен. Примерно: unos / unas": "Gender of hundreds. Approximately: unos / unas",
+"números · doscientos / doscientas": "numbers · doscientos / doscientas",
+"Сотни согласуются в роде": "Hundreds agree in gender",
+"doscientos autos, но doscientas personas; quinientos pesos, но quinientas horas. Меняется окончание: -cientos → -cientas.": "doscientos autos, but doscientas personas; quinientos pesos, but quinientas horas. The ending changes: -cientos → -cientas.",
+"cien и ciento — без рода": "cien and ciento have no gender",
+"cien personas, ciento veinte personas — cien и ciento не меняются. Но trescientas veinte personas.": "cien personas, ciento veinte personas — cien and ciento never change. But trescientas veinte personas.",
+"…un / …una в конце": "…un / …una at the end",
+"doscientos veintiún autos, ciento un pasajeros; doscientas veintiuna personas, ciento una multas.": "doscientos veintiún autos, ciento un pasajeros; doscientas veintiuna personas, ciento una multas.",
+"unos / unas = примерно": "unos / unas = approximately",
+"unos trescientos autos — около 300 машин; unas doscientas personas — около 200 человек. Также: alrededor de, más o menos.": "unos trescientos autos — about 300 cars; unas doscientas personas — about 200 people. Also: alrededor de, más o menos.",
+"más de / menos de / casi": "más de / menos de / casi",
+"С числом — de: más de quinientos kilómetros, menos de cien pesos. casi — почти: casi novecientas llamadas.": "With a number use de: más de quinientos kilómetros, menos de cien pesos. casi means almost: casi novecientas llamadas.",
+"двести (ж. р.)": "two hundred (feminine)",
+"пятьсот (ж. р.)": "five hundred (feminine)",
+"примерно, около": "about, approximately",
+"около": "around",
+"примерно": "more or less",
+"почти": "almost",
+"больше (с числом)": "more than",
+"меньше (с числом)": "less than",
+"час": "hour",
+"чек (Чили)": "receipt (Chile)",
+"счёт-фактура": "invoice",
+"пассажир": "passenger",
+"звонок": "call",
+"компания": "company",
+"200 машин и 200 человек.": "200 cars and 200 people.",
+"500 песо и 500 часов.": "500 pesos and 500 hours.",
+"В компании 400 человек.": "There are 400 people in the company.",
+"В этом месяце 300 штрафов.": "There are 300 fines this month.",
+"У нас 600 чеков.": "We have 600 receipts.",
+"121 человек.": "121 people.",
+"221 машина.": "221 cars.",
+"221 поездка.": "221 trips.",
+"Около 300 машин.": "About 300 cars.",
+"Около 200 человек.": "About 200 people.",
+"Больше 500 километров.": "More than 500 kilometers.",
+"Меньше 100 песо.": "Less than 100 pesos.",
+"Почти 900 звонков.": "Almost 900 calls.",
+"Это примерно 400 часов.": "That's about 400 hours.",
+"200 часов.": "200 hours.",
+"200 километров.": "200 kilometers.",
+"300 поездок.": "300 trips.",
+"400 штрафов.": "400 fines.",
+"500 чеков.": "500 receipts.",
+"600 звонков.": "600 calls.",
+"700 пассажиров.": "700 passengers.",
+"800 счетов-фактур.": "800 invoices.",
+"900 человек.": "900 people.",
+"101 человек.": "101 people.",
+"231 машина.": "231 cars.",
+"341 час.": "341 hours.",
+"Это 701 пассажир.": "That's 701 passengers.",
+"Мы отправили 521 счёт-фактуру.": "We sent 521 invoices.",
+"В офисе около 100 человек.": "There are about 100 people in the office.",
+"В автопарке около 200 машин.": "There are about 200 cars in the fleet.",
+"Вчера было около 500 звонков.": "Yesterday there were about 500 calls.",
+"Там было около 150 человек.": "There were about 150 people there.",
+"В этом месяце больше 300 штрафов.": "This month there are more than 300 fines.",
+"В прошлом месяце было меньше 200 штрафов.": "Last month there were fewer than 200 fines.",
+"Почти 400 пассажиров в день.": "Almost 400 passengers a day.",
+"Мы работаем почти 200 часов в месяц.": "We work almost 200 hours a month.",
+"У меня около 300 фотографий машин.": "I have about 300 photos of cars.",
+"Я проверяю 250 чеков.": "I check 250 receipts.",
+"Водители сделали 900 поездок.": "The drivers made 900 trips.",
+"Это 200 или 300 человек?": "Is it 200 or 300 people?",
+"В конце месяца я проверяю документы.": "At the end of the month I check the documents.",
+"У нас около 600 чеков.": "We have about 600 receipts.",
+"И 230 счетов-фактур из мастерских.": "And 230 invoices from the workshops.",
+"Ещё есть 121 штраф.": "There are also 121 fines.",
+"Водители сделали больше 900 поездок.": "The drivers made more than 900 trips.",
+"Это почти 300 часов работы.": "That's almost 300 hours of work.",
+"Работы много, но я доволен.": "There's a lot of work, but I'm happy.",
+"Числа на работе: километры, скорость, вес, номера": "Numbers at work: kilometers, speed, weight, numbers",
+"números · km · km/h · kilos": "numbers · km · km/h · kilos",
+"kilómetros por hora": "kilómetros por hora",
+"Скорость: ochenta kilómetros por hora. ¿A qué velocidad iba? — Iba a ciento veinte kilómetros por hora (с предлогом a).": "Speed: ochenta kilómetros por hora. ¿A qué velocidad iba? — Iba a ciento veinte kilómetros por hora (with the preposition a).",
+"kilos / kilogramos": "kilos / kilogramos",
+"Вес: ¿Cuánto pesa? — Pesa ciento cincuenta kilos. В разговоре — kilos, в документах — kilogramos.": "Weight: ¿Cuánto pesa? — Pesa ciento cincuenta kilos. In speech: kilos; in documents: kilogramos.",
+"el auto número + число": "el auto número + number",
+"Номер ставится после слова: el auto número ciento veinte, la oficina trescientos cuatro. В номере — всегда мужская форма: la oficina doscientos uno.": "The number goes after the noun: el auto número ciento veinte, la oficina trescientos cuatro. A number used as a label is always masculine: la oficina doscientos uno.",
+"Расстояние: estar a…": "Distance: estar a…",
+"El taller está a seiscientos metros. Valparaíso está a ciento veinte kilómetros. Пробег за день: recorre doscientos ochenta kilómetros al día.": "El taller está a seiscientos metros. Valparaíso está a ciento veinte kilómetros. Daily distance: recorre doscientos ochenta kilómetros al día.",
+"Цены до 999": "Prices up to 999",
+"¿Cuánto cuesta el peaje? — Cuesta setecientos cincuenta pesos. Сдача по-чилийски — el vuelto.": "¿Cuánto cuesta el peaje? — Cuesta setecientos cincuenta pesos. Change (money back) in Chile is el vuelto.",
+"километров в час": "kilometers per hour",
+"скорость": "speed",
+"килограмм": "kilo",
+"груз": "load, cargo",
+"в день": "a day",
+"номер": "number",
+"офис, кабинет": "office",
+"платная дорога, плата за проезд": "toll",
+"проезд, билет": "fare, ticket",
+"сдача (Чили)": "change (money back, Chile)",
+"пробег": "mileage",
+"трасса": "highway",
+"двигатель": "engine",
+"камера": "camera",
+"Скорость — 80 километров в час.": "The speed is 80 kilometers per hour.",
+"В городе — 50 километров в час.": "In the city, 50 kilometers per hour.",
+"На трассе можно ехать 120 километров в час.": "On the highway you can drive 120 kilometers per hour.",
+"Водитель ехал 140 километров в час.": "The driver was going 140 kilometers per hour.",
+"Сколько весит груз?": "How much does the load weigh?",
+"Груз весит 350 килограммов.": "The load weighs 350 kilograms.",
+"Машина номер 120 в мастерской.": "Car number 120 is at the workshop.",
+"Машина номер 101 готова.": "Car number 101 is ready.",
+"Мой кабинет — 304.": "My office is 304.",
+"Он проезжает 280 километров в день.": "He drives 280 kilometers a day.",
+"Мастерская в 600 метрах отсюда.": "The workshop is 600 meters from here.",
+"Бутылка воды стоит 890 песо.": "A bottle of water costs 890 pesos.",
+"Платная дорога стоит 750 песо.": "The toll costs 750 pesos.",
+"Пробег за неделю — 820 километров.": "The mileage for the week is 820 kilometers.",
+"Он ехал 90 километров в час.": "He was going 90 kilometers per hour.",
+"Мы ехали 110 километров в час.": "We were going 110 kilometers per hour.",
+"Он ехал больше 120 километров в час.": "He was going more than 120 kilometers per hour.",
+"Камера показывает 132 километра в час.": "The camera shows 132 kilometers per hour.",
+"Максимальная скорость — 100 километров в час.": "The speed limit is 100 kilometers per hour.",
+"С какой скоростью ехала машина?": "How fast was the car going?",
+"Машина ехала со скоростью 115 километров в час.": "The car was going 115 kilometers per hour.",
+"Сколько весит двигатель?": "How much does the engine weigh?",
+"Двигатель весит 180 килограммов.": "The engine weighs 180 kilograms.",
+"Груз весит меньше 500 килограммов.": "The load weighs less than 500 kilograms.",
+"Машина номер 245 на парковке.": "Car number 245 is in the parking lot.",
+"Машина номер 318 в мастерской.": "Car number 318 is at the workshop.",
+"Где машина номер 501?": "Where is car number 501?",
+"Машина номер 777 новая.": "Car number 777 is new.",
+"Кабинет 210, пожалуйста.": "Office 210, please.",
+"Сегодня я проехал 430 километров.": "Today I drove 430 kilometers.",
+"До Ла-Серены 470 километров.": "It's 470 kilometers to La Serena.",
+"Водитель проезжает около 250 километров в день.": "The driver covers about 250 kilometers a day.",
+"Мастерская в 300 метрах.": "The workshop is 300 meters away.",
+"Пробег — 940 километров в неделю.": "The mileage is 940 kilometers a week.",
+"Платная дорога стоит 680 песо.": "The toll costs 680 pesos.",
+"Парковка стоит 990 песо в час.": "Parking costs 990 pesos an hour.",
+"Сколько стоит проезд в метро?": "How much is a metro fare?",
+"Проезд стоит 870 песо.": "The fare costs 870 pesos.",
+"Шоколадка стоит 590 песо.": "A chocolate bar costs 590 pesos.",
+"Сдача — 160 песо.": "The change is 160 pesos.",
+"Сегодня пришёл штраф за превышение скорости.": "Today a speeding fine arrived.",
+"Машина номер 214, водитель — Хорхе.": "Car number 214, the driver is Jorge.",
+"Камера показала 128 километров в час.": "The camera showed 128 kilometers per hour.",
+"А на этой трассе максимум — 100.": "And on this highway the limit is 100.",
+"Хорхе говорит, что ехал 98.": "Jorge says he was going 98.",
+"Но GPS показывает 126 километров в час.": "But the GPS shows 126 kilometers per hour.",
+"Платить будет Хорхе.": "Jorge will pay.",
+"Тысячи: mil, 1.000–9.999. Годы": "Thousands: mil, 1,000–9,999. Years",
+"números · mil · años": "numbers · mil · years",
+"mil — без «un»": "mil — without «un»",
+"1000 = mil (не «un mil»). 2000 = dos mil, 5000 = cinco mil. mil не меняется: tres mil, не «tres miles».": "1000 = mil (not «un mil»). 2000 = dos mil, 5000 = cinco mil. mil does not change: tres mil, not «tres miles».",
+"mil + остаток": "mil + remainder",
+"1250 = mil doscientos cincuenta; 3015 = tres mil quince; 7080 = siete mil ochenta. После mil — без «y».": "1250 = mil doscientos cincuenta; 3015 = tres mil quince; 7080 = siete mil ochenta. No «y» after mil.",
+"Род после mil": "Gender after mil",
+"Род влияет на сотни после mil: dos mil quinientas personas, но dos mil quinientos autos.": "Gender affects the hundreds after mil: dos mil quinientas personas, but dos mil quinientos autos.",
+"Годы — как обычные числа": "Years are read like ordinary numbers",
+"1998 = mil novecientos noventa y ocho; 2026 = dos mil veintiséis; 2000 = dos mil. «В 1998 году» — en mil novecientos noventa y ocho / en el año…": "1998 = mil novecientos noventa y ocho; 2026 = dos mil veintiséis; 2000 = dos mil. «In 1998» is en mil novecientos noventa y ocho / en el año…",
+"Чилийская запись: точка": "Chilean notation: a dot",
+"В Чили тысячи отделяют точкой: 1.000, 9.500 — mil, nueve mil quinientos. Запятая — десятичная (2,5). Годы пишут без точки: 2026.": "In Chile thousands are separated with a dot: 1.000, 9.500 — mil, nueve mil quinientos. The comma is decimal (2,5). Years are written without a dot: 2026.",
+"Модель машины": "Car model year",
+"Год выпуска: un auto del dos mil diecinueve / modelo dos mil diecinueve.": "Model year: un auto del dos mil diecinueve / modelo dos mil diecinueve.",
+"тысяча": "one thousand",
+"две тысячи": "two thousand",
+"пять тысяч": "five thousand",
+"девять тысяч": "nine thousand",
+"тысяча пятьсот": "one thousand five hundred",
+"1998": "1998",
+"2026": "2026",
+"в каком году?": "in what year?",
+"модель": "model",
+"точка": "dot",
+"запятая": "comma",
+"техобслуживание (Чили)": "maintenance service (Chile)",
+"мойка": "car wash",
+"1000, 2000, 3000.": "1000, 2000, 3000.",
+"1500.": "1500.",
+"2750.": "2750.",
+"3015.": "3015.",
+"9999.": "9999.",
+"1000 песо.": "1000 pesos.",
+"5000 песо.": "5000 pesos.",
+"2500 человек.": "2500 people.",
+"2500 машин.": "2500 cars.",
+"Я родился в 1998 году.": "I was born in 1998.",
+"Сейчас 2026 год.": "It's 2026 now.",
+"Машина 2019 года.": "The car is a 2019 model.",
+"В 2000 году.": "In 2000.",
+"В каком году ты приехал в Чили?": "What year did you come to Chile?",
+"1001.": "1001.",
+"1200.": "1200.",
+"4300.": "4300.",
+"5500.": "5500.",
+"7080.": "7080.",
+"8888.": "8888.",
+"Тысяча километров.": "A thousand kilometers.",
+"6100 песо.": "6100 pesos.",
+"2990 песо.": "2990 pesos.",
+"Это стоит 3500 песо.": "It costs 3500 pesos.",
+"Кофе стоит 2200 песо.": "The coffee costs 2200 pesos.",
+"Мойка стоит 8000 песо.": "The car wash costs 8000 pesos.",
+"В компании 1200 человек.": "There are 1200 people in the company.",
+"В этом месяце было 1300 поездок.": "This month there were 1300 trips.",
+"Около 3000 человек.": "About 3000 people.",
+"Машина проехала 2400 километров.": "The car drove 2400 kilometers.",
+"ТО каждые 5000 километров.": "Maintenance every 5000 kilometers.",
+"Я родилась в 1985 году.": "I was born in 1985.",
+"Мой отец родился в 1960 году.": "My father was born in 1960.",
+"Это было в 1999 году.": "It was in 1999.",
+"Компания открылась в 2021 году.": "The company opened in 2021.",
+"Я приехал в Чили в 2023 году.": "I came to Chile in 2023.",
+"Машина 2022 года.": "The car is a 2022 model.",
+"В 2027 году у нас будет 150 машин.": "In 2027 we will have 150 cars.",
+"2026 и 2027.": "2026 and 2027.",
+"Не 1500, а 1050.": "Not 1500, but 1050.",
+"Наша компания открылась в 2019 году.": "Our company opened in 2019.",
+"Тогда у нас было 5 машин.": "Back then we had 5 cars.",
+"Сейчас 2026 год, и у нас 32 машины.": "Now it's 2026 and we have 32 cars.",
+"В месяц водители делают около 6000 поездок.": "The drivers make about 6000 trips a month.",
+"Каждая машина проезжает около 7000 километров в месяц.": "Each car drives about 7000 kilometers a month.",
+"ТО — каждые 5000 километров.": "Maintenance is every 5000 kilometers.",
+"В 2027 году мы хотим 100 машин.": "In 2027 we want 100 cars.",
+"От 10 000 до 999 999: цены, lucas, километраж": "From 10,000 to 999,999: prices, lucas, mileage",
+"números · miles · pesos": "numbers · thousands · pesos",
+"число + mil": "number + mil",
+"10 000 = diez mil, 45 000 = cuarenta y cinco mil, 450 000 = cuatrocientos cincuenta mil. Сначала число тысяч целиком, потом mil, потом остаток.": "10,000 = diez mil, 45,000 = cuarenta y cinco mil, 450,000 = cuatrocientos cincuenta mil. First the whole number of thousands, then mil, then the rest.",
+"veintiún mil, ciento un mil": "veintiún mil, ciento un mil",
+"Перед mil «uno» сокращается: 21 000 = veintiún mil, 31 000 = treinta y un mil, 101 000 = ciento un mil. Но 1000 — просто mil.": "Before mil, «uno» is shortened: 21,000 = veintiún mil, 31,000 = treinta y un mil, 101,000 = ciento un mil. But 1000 is just mil.",
+"Род: doscientas mil personas": "Gender: doscientas mil personas",
+"Сотни перед mil согласуются с существительным: trescientas mil personas, но trescientos mil pesos.": "Hundreds before mil agree with the noun: trescientas mil personas, but trescientos mil pesos.",
+"Цены в песо": "Prices in pesos",
+"$15.990 = quince mil novecientos noventa pesos; $450.000 = cuatrocientos cincuenta mil pesos. Знак $ в Чили — песо. НДС = IVA (19 %).": "$15.990 = quince mil novecientos noventa pesos; $450.000 = cuatrocientos cincuenta mil pesos. The $ sign in Chile means pesos. VAT = IVA (19%).",
+"luca / lucas": "luca / lucas",
+"Разговорно 1000 песо = una luca: diez lucas = 10 000, quinientas lucas = 500 000 (luca — женский род!). Официально — pesos.": "Colloquially 1000 pesos = una luca: diez lucas = 10,000, quinientas lucas = 500,000 (luca is feminine!). Officially: pesos.",
+"Километраж": "Mileage",
+"El auto tiene ciento veinte mil kilómetros — пробег 120 000 км. La mantención es cada diez mil kilómetros — ТО каждые 10 000 км.": "El auto tiene ciento veinte mil kilómetros — the car has 120,000 km. La mantención es cada diez mil kilómetros — service every 10,000 km.",
+"десять тысяч": "ten thousand",
+"двадцать тысяч": "twenty thousand",
+"двадцать одна тысяча": "twenty-one thousand",
+"пятьдесят тысяч": "fifty thousand",
+"сто тысяч": "one hundred thousand",
+"пятьсот тысяч": "five hundred thousand",
+"зарплата": "salary",
+"смета": "quote, estimate",
+"запчасть": "spare part",
+"работа (в смете)": "labor (in a quote)",
+"НДС (19 %)": "VAT (19%)",
+"шина": "tire",
+"10 000 песо.": "10,000 pesos.",
+"15 990 песо.": "15,990 pesos.",
+"21 000 песо.": "21,000 pesos.",
+"45 500 песо.": "45,500 pesos.",
+"100 000 песо.": "100,000 pesos.",
+"450 000 песо.": "450,000 pesos.",
+"999 990 песо.": "999,990 pesos.",
+"200 000 человек.": "200,000 people.",
+"Это стоит 20 лук.": "It costs 20 lucas.",
+"Это 10 000 песо, то есть 10 лук.": "That's 10,000 pesos, that is, 10 lucas.",
+"У машины 120 000 километров.": "The car has 120,000 kilometers.",
+"ТО каждые 10 000 километров.": "Maintenance every 10,000 kilometers.",
+"Смета — 380 000 песо.": "The quote is 380,000 pesos.",
+"Сколько стоит ремонт?": "How much does the repair cost?",
+"12 000 песо.": "12,000 pesos.",
+"16 500 песо.": "16,500 pesos.",
+"22 990 песо.": "22,990 pesos.",
+"31 000 песо.": "31,000 pesos.",
+"58 300 песо.": "58,300 pesos.",
+"99 990 песо.": "99,990 pesos.",
+"101 000 песо.": "101,000 pesos.",
+"250 000 песо.": "250,000 pesos.",
+"500 000 песо.": "500,000 pesos.",
+"730 000 песо.": "730,000 pesos.",
+"Около 300 000 человек.": "About 300,000 people.",
+"Масло и фильтр — 45 000 песо.": "Oil and filter: 45,000 pesos.",
+"Шина стоит 89 990 песо.": "The tire costs 89,990 pesos.",
+"Смета на ремонт — 640 000 песо.": "The repair quote is 640,000 pesos.",
+"Работа — 120 000, запчасти — 210 000.": "Labor: 120,000; parts: 210,000.",
+"Плюс НДС — 62 700 песо.": "Plus VAT: 62,700 pesos.",
+"Это 50 лук.": "That's 50 lucas.",
+"Это стоит 300 лук.": "It costs 300 lucas.",
+"Мойка стоит 15 лук? Дорого!": "The car wash costs 15 lucas? That's expensive!",
+"У машины 85 000 километров.": "The car has 85,000 kilometers.",
+"У этой машины 201 000 километров.": "This car has 201,000 kilometers.",
+"Следующее ТО — на 130 000 километрах.": "The next service is at 130,000 kilometers.",
+"Машина проехала 21 000 километров за год.": "The car drove 21,000 kilometers in a year.",
+"Водитель сдаёт 45 000 песо в день.": "The driver hands in 45,000 pesos a day.",
+"Мы потратили 780 000 песо на шины.": "We spent 780,000 pesos on tires.",
+"Зарплата механика — 850 000 песо.": "The mechanic's salary is 850,000 pesos.",
+"Звонит мастерская: смета готова.": "The workshop calls: the quote is ready.",
+"Работа — 180 000 песо.": "Labor is 180,000 pesos.",
+"Запчасти — 321 000 песо.": "Parts are 321,000 pesos.",
+"Итого 501 000 песо плюс НДС.": "The total is 501,000 pesos plus VAT.",
+"Это много: больше 500 лук!": "That's a lot: more than 500 lucas!",
+"У машины 160 000 километров.": "The car has 160,000 kilometers.",
+"Я попрошу другую смету.": "I'll ask for another quote.",
+"Миллионы: un millón de pesos": "Millions: un millón de pesos",
+"números · millones": "numbers · millions",
+"un millón de + существительное": "un millón de + noun",
+"1 000 000 = un millón. Ровные миллионы перед существительным — с de: un millón de pesos, dos millones de pesos, diez millones de personas.": "1,000,000 = un millón. Round millions before a noun take de: un millón de pesos, dos millones de pesos, diez millones de personas.",
+"millones — множественное": "millones — plural",
+"2 000 000 = dos millones, 15 000 000 = quince millones, 21 000 000 = veintiún millones (millón — мужской род).": "2,000,000 = dos millones, 15,000,000 = quince millones, 21,000,000 = veintiún millones (millón is masculine).",
+"Есть остаток — без de": "With a remainder — no de",
+"1 250 000 = un millón doscientos cincuenta mil pesos (без de!). 3 500 000 = tres millones quinientos mil pesos.": "1,250,000 = un millón doscientos cincuenta mil pesos (no de!). 3,500,000 = tres millones quinientos mil pesos.",
+"y medio": "y medio",
+"1 500 000 = un millón quinientos mil или un millón y medio de pesos. 2 500 000 = dos millones y medio.": "1,500,000 = un millón quinientos mil or un millón y medio de pesos. 2,500,000 = dos millones y medio.",
+"Род остатка": "Gender of the remainder",
+"millón — мужской, но остаток согласуется с существительным: un millón doscientas mil personas, un millón doscientos mil pesos.": "millón is masculine, but the remainder agrees with the noun: un millón doscientas mil personas, un millón doscientos mil pesos.",
+"palo — сленг": "palo — slang",
+"Разговорно в Чили миллион = un palo: cinco palos = 5 млн. Полезно понимать; на работе говори millones.": "Colloquially in Chile a million = un palo: cinco palos = 5 million. Useful to understand; at work say millones.",
+"миллион": "one million",
+"два миллиона": "two million",
+"миллион песо": "a million pesos",
+"полтора миллиона": "a million and a half",
+"десять миллионов": "ten million",
+"двадцать один миллион": "twenty-one million",
+"миллион (сленг)": "a million (slang)",
+"смета; бюджет": "quote; budget",
+"авария (столкновение)": "crash, collision",
+"страховка": "insurance",
+"франшиза": "deductible",
+"ликвидатор (страховой)": "insurance adjuster",
+"расход": "expense",
+"автопарк": "fleet",
+"1 000 000 песо.": "1,000,000 pesos.",
+"2 000 000 песо.": "2,000,000 pesos.",
+"1 200 000 песо.": "1,200,000 pesos.",
+"1 500 000 песо.": "1,500,000 pesos.",
+"2 500 000 песо.": "2,500,000 pesos.",
+"3 750 000 песо.": "3,750,000 pesos.",
+"10 000 000 песо.": "10,000,000 pesos.",
+"21 000 000 песо.": "21,000,000 pesos.",
+"Сколько стоит новая машина?": "How much does a new car cost?",
+"Машина стоит 14 000 000 песо.": "The car costs 14,000,000 pesos.",
+"Смета — 1 250 000 песо.": "The quote is 1,250,000 pesos.",
+"Моя зарплата — 2 800 000 песо.": "My salary is 2,800,000 pesos.",
+"Бюджет автопарка — 30 000 000 песо в месяц.": "The fleet budget is 30,000,000 pesos a month.",
+"Около 2 000 000 песо.": "About 2,000,000 pesos.",
+"1 100 000 песо.": "1,100,000 pesos.",
+"1 350 000 песо.": "1,350,000 pesos.",
+"3 000 000 песо.": "3,000,000 pesos.",
+"4 990 000 песо.": "4,990,000 pesos.",
+"6 200 000 песо.": "6,200,000 pesos.",
+"12 500 000 песо.": "12,500,000 pesos.",
+"15 000 000 песо.": "15,000,000 pesos.",
+"21 300 000 песо.": "21,300,000 pesos.",
+"28 000 000 песо.": "28,000,000 pesos.",
+"1 000 000 человек.": "1,000,000 people.",
+"Машина стоит 16 990 000 песо.": "The car costs 16,990,000 pesos.",
+"Новая машина стоит около 15 миллионов.": "A new car costs about 15 million.",
+"Смета на ремонт — 2 300 000 песо.": "The repair quote is 2,300,000 pesos.",
+"Ремонт после аварии стоит 4 000 000 песо.": "The repair after the crash costs 4,000,000 pesos.",
+"Страховая платит 3 500 000 песо.": "The insurance company pays 3,500,000 pesos.",
+"Франшиза — 300 000 песо.": "The deductible is 300,000 pesos.",
+"Моя зарплата — 3 000 000 песо.": "My salary is 3,000,000 pesos.",
+"Я хочу 4 000 000 песо в месяц.": "I want 4,000,000 pesos a month.",
+"Зарплата водителя — около 1 000 000 песо.": "A driver's salary is about 1,000,000 pesos.",
+"Бюджет на этот месяц — 25 000 000 песо.": "The budget for this month is 25,000,000 pesos.",
+"Мы потратили 18 200 000 песо.": "We spent 18,200,000 pesos.",
+"Расходы выросли на 2 000 000 песо.": "Expenses went up by 2,000,000 pesos.",
+"Это 1 500 000 или 1 050 000?": "Is it 1,500,000 or 1,050,000?",
+"За год — 300 000 000 песо.": "Per year it's 300,000,000 pesos.",
+"Автопарк стоит больше 500 000 000 песо.": "The fleet is worth more than 500,000,000 pesos.",
+"Миллион — это много?": "Is a million a lot?",
+"Вчера была авария: машина номер 27.": "Yesterday there was a crash: car number 27.",
+"Мастерская прислала смету: 3 400 000 песо.": "The workshop sent the quote: 3,400,000 pesos.",
+"Ликвидатор говорит, что это много.": "The adjuster says it's a lot.",
+"Он одобряет 2 900 000 песо.": "He approves 2,900,000 pesos.",
+"Франшиза — 450 000 песо.": "The deductible is 450,000 pesos.",
+"Новая машина стоит 15 000 000 песо.": "A new car costs 15,000,000 pesos.",
+"Поэтому мы будем ремонтировать машину.": "That's why we're going to repair the car.",
+"Время: ¿Qué hora es? ¿A qué hora…?": "Time: ¿Qué hora es? ¿A qué hora…?",
+"números · la hora": "numbers · telling time",
+"Es la una / son las…": "Es la una / son las…",
+"1:00 — es la una (единственное число). Остальные часы — son las dos, son las tres… Часы женского рода: la una, las dos. В прошлом: era la una, eran las diez.": "1:00 is es la una (singular). Other hours: son las dos, son las tres… Hours are feminine: la una, las dos. In the past: era la una, eran las diez.",
+"y + минуты": "y + minutes",
+"Son las tres y diez (3:10). y cuarto / y quince (3:15), y media / y treinta (3:30). en punto — ровно: son las ocho en punto.": "Son las tres y diez (3:10). y cuarto / y quince (3:15), y media / y treinta (3:30). en punto means sharp: son las ocho en punto.",
+"menos / para": "menos / para",
+"После :30 часто считают до следующего часа: 4:45 = las cinco menos cuarto; в Чили чаще un cuarto para las cinco, 4:50 = diez para las cinco. Можно и las cuatro y cuarenta y cinco.": "After :30 people often count to the next hour: 4:45 = las cinco menos cuarto; in Chile more often un cuarto para las cinco, 4:50 = diez para las cinco. Las cuatro y cuarenta y cinco is also fine.",
+"¿A qué hora…? — A las…": "¿A qué hora…? — A las…",
+"Когда что-то происходит: ¿A qué hora empieza el turno? — A las siete. A la una. Промежуток: de nueve a seis.": "When something happens: ¿A qué hora empieza el turno? — A las siete. A la una. A time span: de nueve a seis.",
+"de la mañana / tarde / noche": "de la mañana / tarde / noche",
+"las siete de la mañana, las tres de la tarde, las diez de la noche. В расписании пишут 18:00, а говорят las seis de la tarde. al mediodía — в полдень, a medianoche — в полночь.": "las siete de la mañana, las tres de la tarde, las diez de la noche. Schedules say 18:00, but people say las seis de la tarde. al mediodía — at noon, a medianoche — at midnight.",
+"час; время": "hour; time",
+"который час?": "what time is it?",
+"во сколько?": "at what time?",
+"час (1:00)": "it's one o'clock",
+"два часа": "it's two o'clock",
+"с четвертью (:15)": "quarter past",
+"половина (:30)": "half past",
+"без четверти": "quarter to",
+"без четверти … (Чили)": "a quarter to… (Chile)",
+"ровно": "sharp, o'clock",
+"утра": "in the morning",
+"дня, вечера (до темноты)": "in the afternoon/evening",
+"вечера, ночи": "at night",
+"полдень": "noon",
+"смена": "shift",
+"Сейчас 1:00.": "It's 1:00.",
+"Сейчас 3:00.": "It's 3:00.",
+"Сейчас 3:15.": "It's 3:15.",
+"Сейчас 3:30.": "It's 3:30.",
+"Сейчас 1:20.": "It's 1:20.",
+"Сейчас 4:45.": "It's 4:45.",
+"Сейчас 4:50.": "It's 4:50.",
+"Во сколько начинается смена?": "What time does the shift start?",
+"Смена начинается в 7 утра.": "The shift starts at 7 a.m.",
+"Мастерская закрывается в 18:00.": "The workshop closes at 18:00.",
+"Встреча в 12:00, в полдень.": "The meeting is at 12:00, at noon.",
+"Я сплю до 7:30.": "I sleep until 7:30.",
+"Было 10 вечера.": "It was 10 p.m.",
+"Сейчас 2:00.": "It's 2:00.",
+"Сейчас 1:30.": "It's 1:30.",
+"Сейчас 5:10.": "It's 5:10.",
+"Сейчас 7:15.": "It's 7:15.",
+"Сейчас 8:25.": "It's 8:25.",
+"Сейчас 9:40.": "It's 9:40.",
+"Сейчас 10:45.": "It's 10:45.",
+"Сейчас 11:55.": "It's 11:55.",
+"Сейчас 12:50.": "It's 12:50.",
+"Сейчас ровно 6.": "It's 6 o'clock sharp.",
+"Я начинаю в 8:30.": "I start at 8:30.",
+"Я заканчиваю в 18:00.": "I finish at 18:00.",
+"Я работаю с 9 до 6.": "I work from 9 to 6.",
+"Утренняя смена — с 6:00 до 14:00.": "The morning shift is from 6:00 to 14:00.",
+"Ночная смена начинается в 22:00.": "The night shift starts at 22:00.",
+"Водитель пришёл в 7:20.": "The driver arrived at 7:20.",
+"Машина будет готова в 16:00.": "The car will be ready at 16:00.",
+"Встреча в час дня.": "The meeting is at one in the afternoon.",
+"Встреча в 3:30 дня.": "The meeting is at 3:30 p.m.",
+"Офис открывается в 9 утра.": "The office opens at 9 a.m.",
+"Было 2 часа ночи.": "It was 2 a.m.",
+"Ты придёшь в 11:15?": "Will you come at 11:15?",
+"Нет, я приду в полдень.": "No, I'll come at noon.",
+"Во сколько закрывается мастерская?": "What time does the workshop close?",
+"Мы закрываем в полночь.": "We close at midnight.",
+"Мой день начинается в 6:30.": "My day starts at 6:30.",
+"В 7:00 начинается утренняя смена.": "At 7:00 the morning shift starts.",
+"В 9:15 я звоню в мастерскую.": "At 9:15 I call the workshop.",
+"Механик говорит, что машина будет готова в 15:00.": "The mechanic says the car will be ready at 15:00.",
+"Но в 14:45 машины ещё нет.": "But at 14:45 the car still isn't there.",
+"Машина приезжает только в 17:20.": "The car only arrives at 17:20.",
+"В 22:00 начинается ночная смена.": "At 22:00 the night shift starts.",
+"Даты, дни недели, порядковые. Патенты": "Dates, days of the week, ordinals. License plates",
+"números · fechas · primero–décimo": "numbers · dates · first–tenth",
+"Дни недели": "Days of the week",
+"lunes, martes, miércoles, jueves, viernes, sábado, domingo — с маленькой буквы. el lunes — в понедельник, los lunes — по понедельникам. Без предлога en!": "lunes, martes, miércoles, jueves, viernes, sábado, domingo — lowercase. el lunes — on Monday, los lunes — on Mondays. No preposition en!",
+"Месяцы": "Months",
+"enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre — тоже с маленькой буквы.": "enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre — also lowercase.",
+"el + число + de + месяц + de + год": "el + day + de + month + de + year",
+"el cinco de octubre de dos mil veintiséis. Первое число — el primero de octubre (в Чили обычно primero, можно uno). ¿Qué fecha es hoy? — Hoy es cinco de octubre.": "el cinco de octubre de dos mil veintiséis. The 1st is el primero de octubre (in Chile usually primero, uno is also possible). ¿Qué fecha es hoy? — Hoy es cinco de octubre.",
+"Порядковые 1–10": "Ordinals 1–10",
+"primero, segundo, tercero, cuarto, quinto, sexto, séptimo, octavo, noveno, décimo. Согласуются: la segunda semana. Перед сущ. м. р. primero → primer, tercero → tercer: el primer piso, el tercer día.": "primero, segundo, tercero, cuarto, quinto, sexto, séptimo, octavo, noveno, décimo. They agree: la segunda semana. Before a masculine noun primero → primer, tercero → tercer: el primer piso, el tercer día.",
+"Патенты": "License plates",
+"Чилийская патента: 4 буквы + 2 цифры (BBCL24) или старая — 2 буквы + 4 цифры (HJ4512). Буквы — по-испански (be, ce, ele, ka…), цифры — числом или по одной: veinticuatro / dos cuatro.": "A Chilean plate: 4 letters + 2 digits (BBCL24) or the older 2 letters + 4 digits (HJ4512). Letters are said in Spanish (be, ce, ele, ka…), digits as a number or one by one: veinticuatro / dos cuatro.",
+"понедельник; в понедельник": "Monday; on Monday",
+"сентябрь": "September",
+"дата": "date",
+"первое (число)": "the first of…",
+"первый / первая": "first",
+"второй / вторая": "second",
+"третий / третья": "third",
+"этаж": "floor",
+"номер машины (Чили)": "license plate (Chile)",
+"праздничный день": "public holiday",
+"Какое сегодня число?": "What's the date today?",
+"Сегодня 5 октября.": "Today is October 5.",
+"Сегодня 1 октября.": "Today is October 1.",
+"5 октября 2026 года.": "October 5, 2026.",
+"Какой сегодня день недели?": "What day of the week is it today?",
+"Сегодня понедельник.": "Today is Monday.",
+"В пятницу у меня встреча.": "On Friday I have a meeting.",
+"По субботам мастерская закрыта.": "The workshop is closed on Saturdays.",
+"Мой день рождения — 21 марта.": "My birthday is March 21.",
+"Офис на третьем этаже.": "The office is on the third floor.",
+"Это вторая неделя месяца.": "It's the second week of the month.",
+"Первый день смены.": "The first day of the shift.",
+"Номер машины — BB CL 24.": "The license plate is BB CL 24.",
+"Номер машины — GH JK 58.": "The license plate is GH JK 58.",
+"Сегодня 12 февраля.": "Today is February 12.",
+"Завтра 1 мая.": "Tomorrow is May 1.",
+"18 сентября — праздник в Чили.": "September 18 is a holiday in Chile.",
+"Я родился 3 июля 1990 года.": "I was born on July 3, 1990.",
+"Компания открылась 15 января 2019 года.": "The company opened on January 15, 2019.",
+"Машину вернут 22 октября.": "The car will be returned on October 22.",
+"Ремонт закончится 30 ноября.": "The repair will be finished on November 30.",
+"Отчёт — каждый понедельник.": "The report is every Monday.",
+"Во вторник и в четверг.": "On Tuesday and on Thursday.",
+"По средам я в мастерской.": "On Wednesdays I'm at the workshop.",
+"В воскресенье я не работаю.": "I don't work on Sunday.",
+"В субботу мы работаем до часа.": "On Saturday we work until one.",
+"Первый водитель.": "The first driver.",
+"Первая неделя.": "The first week.",
+"Третий день.": "The third day.",
+"Четвёртый этаж.": "The fourth floor.",
+"Пятая машина в очереди.": "The fifth car in line.",
+"Шестой месяц.": "The sixth month.",
+"Седьмая смена.": "The seventh shift.",
+"Восьмой раз.": "The eighth time.",
+"Девятый день ремонта.": "The ninth day of the repair.",
+"Это десятый штраф в этом месяце.": "It's the tenth fine this month.",
+"Какой номер у машины?": "What's the car's license plate?",
+"Номер машины — KL PR 37.": "The license plate is KL PR 37.",
+"Номер машины — DF TS 90.": "The license plate is DF TS 90.",
+"Номер машины — HJ 4512.": "The license plate is HJ 4512.",
+"Сегодня понедельник, 5 октября.": "Today is Monday, October 5.",
+"Машина с номером KL PR 37 стоит в мастерской.": "The car with license plate KL PR 37 is at the workshop.",
+"Это уже вторая неделя.": "It's already the second week.",
+"Мастерская говорит, что машина будет готова 9 октября.": "The workshop says the car will be ready on October 9.",
+"Это пятница.": "That's a Friday.",
+"Но 12 октября — праздник.": "But October 12 is a holiday.",
+"Если нет, водитель потеряет третью неделю.": "If not, the driver will lose a third week.",
+"Проценты, дроби, десятичные": "Percentages, fractions, decimals",
+"números · % · coma · fracciones": "numbers · % · decimals · fractions",
+"por ciento": "por ciento",
+"10 % = diez por ciento, 100 % = cien por ciento. С артиклем: el veinte por ciento de los autos. Рост/снижение: subir / bajar un cinco por ciento.": "10% = diez por ciento, 100% = cien por ciento. With an article: el veinte por ciento de los autos. Increase/decrease: subir / bajar un cinco por ciento.",
+"del … por ciento": "del … por ciento",
+"Скидка, комиссия, налог: un descuento del quince por ciento, la comisión es del veinte por ciento, el IVA es del diecinueve por ciento.": "Discount, commission, tax: un descuento del quince por ciento, la comisión es del veinte por ciento, el IVA es del diecinueve por ciento.",
+"coma — десятичная": "coma — the decimal comma",
+"В Чили дробную часть отделяют запятой: 2,5 = dos coma cinco; 1,75 = uno coma setenta y cinco; 0,5 = cero coma cinco. dos coma cinco litros.": "In Chile the decimal part is separated by a comma: 2,5 = dos coma cinco; 1,75 = uno coma setenta y cinco; 0,5 = cero coma cinco. dos coma cinco litros.",
+"medio / media и la mitad": "medio / media and la mitad",
+"medio — прилагательное, согласуется: medio litro, media hora, un día y medio, dos horas y media. la mitad — существительное: la mitad de los autos.": "medio is an adjective and agrees: medio litro, media hora, un día y medio, dos horas y media. la mitad is a noun: la mitad de los autos.",
+"Дроби": "Fractions",
+"un tercio (1/3), un cuarto (1/4), dos tercios (2/3), tres cuartos (3/4), un quinto (1/5). Также: la tercera parte, la cuarta parte.": "un tercio (1/3), un cuarto (1/4), dos tercios (2/3), tres cuartos (3/4), un quinto (1/5). Also: la tercera parte, la cuarta parte.",
+"процент(ов)": "percent",
+"процент, доля": "percentage",
+"половина (прил.), пол-": "half (adjective)",
+"половина": "half (noun)",
+"треть": "a third",
+"четверть": "a quarter",
+"три четверти": "three quarters",
+"скидка": "discount",
+"комиссия": "commission",
+"рост, повышение": "increase",
+"литр": "liter",
+"расход (топлива)": "fuel consumption",
+"бензин (Чили)": "gasoline (Chile)",
+"10 %.": "10%.",
+"25 %.": "25%.",
+"100 %.": "100%.",
+"Скидка — 15 %.": "The discount is 15%.",
+"Комиссия — 20 %.": "The commission is 20%.",
+"30 % машин в мастерской.": "30% of the cars are at the workshop.",
+"Расходы выросли на 5 %.": "Expenses went up by 5%.",
+"2,5 литра.": "2.5 liters.",
+"1,75.": "1.75.",
+"Пол-литра.": "Half a liter.",
+"Полчаса.": "Half an hour.",
+"Половина водителей.": "Half of the drivers.",
+"Треть бюджета.": "A third of the budget.",
+"Три четверти автопарка.": "Three quarters of the fleet.",
+"50 %.": "50%.",
+"НДС в Чили — 19 %.": "VAT in Chile is 19%.",
+"Скидка 10 % на шины.": "A 10% discount on tires.",
+"Мастерская даёт нам скидку 12 %.": "The workshop gives us a 12% discount.",
+"Водитель получает 40 %.": "The driver gets 40%.",
+"Компания получает 60 %.": "The company gets 60%.",
+"Расходы выросли на 8 %.": "Expenses went up by 8%.",
+"Цена бензина выросла на 3 %.": "The price of gasoline went up by 3%.",
+"90 % машин на ходу.": "90% of the cars are running.",
+"Мы выполнили план на 100 %.": "We met the plan 100%.",
+"Расход — 7,5 литра на 100 километров.": "Fuel consumption is 7.5 liters per 100 kilometers.",
+"3,2 литра.": "3.2 liters.",
+"0,5 литра.": "0.5 liters.",
+"1,5 часа.": "1.5 hours.",
+"4,8.": "4.8.",
+"12,25.": "12.25.",
+"Половина машин в мастерской.": "Half of the cars are at the workshop.",
+"Половина смены.": "Half of the shift.",
+"Я ждал полчаса.": "I waited half an hour.",
+"Ремонт занял полтора дня.": "The repair took a day and a half.",
+"Треть водителей — новые.": "A third of the drivers are new.",
+"Четверть машин — гибриды.": "A quarter of the cars are hybrids.",
+"Две трети бюджета — ремонт.": "Two thirds of the budget is repairs.",
+"Бак заполнен на три четверти.": "The tank is three-quarters full.",
+"Бак заполнен наполовину.": "The tank is half full.",
+"Комиссия — 2,5 %.": "The commission is 2.5%.",
+"Каждый месяц я готовлю отчёт для начальника.": "Every month I prepare a report for my boss.",
+"В сентябре расходы выросли на 7 %.": "In September expenses went up by 7%.",
+"Треть расходов — ремонт в мастерских.": "A third of the expenses are workshop repairs.",
+"Бензин подорожал на 2,5 %.": "Gasoline went up by 2.5%.",
+"Но мастерская дала нам скидку 10 %.": "But the workshop gave us a 10% discount.",
+"Теперь половина машин — новые.": "Now half of the cars are new.",
+"В следующем месяце расходы будут на 5 % ниже.": "Next month expenses will be 5% lower."
 };
 
 // ---- i18n.js ----
@@ -11899,7 +13765,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   }
   const pad = n => String(n).padStart(2, '0');
   const dayKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-  const speaking = () => { try { return speechSynthesis.speaking; } catch (e) { return false; } };
+  const speaking = () => { try { return !!playing || speechSynthesis.speaking; } catch (e) { return !!playing; } };
   function isActive(now) {
     return document.visibilityState === 'visible' && (document.hasFocus() || speaking()) && (now - lastAct <= (view === 'theory' ? IDLE_READ : IDLE) || speaking());
   }
@@ -12057,23 +13923,65 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     voice = vs.find(v => /es-(CL|MX|US|419)/i.test(v.lang)) || vs.find(v => /es-ES/i.test(v.lang)) || vs[0] || null;
   }
   if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-  function say(text, rate) {
-    if (!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text.replace(/[—]/g, ''));
-    u.lang = voice ? voice.lang : 'es-MX'; if (voice) u.voice = voice; u.rate = rate || 0.9;
-    speechSynthesis.speak(u);
-    return u;
+  // Записанный голос (Lorenzo, Чили). Клипы лежат пачками: audio/<пачка>.mp3 + audio/index.json {sha1[:12]: [пачка, начало, длина]}.
+  // Если записи нет или она недоступна — говорит голос браузера.
+  const AUDIO_BASE = (typeof AUDIO_URL !== 'undefined') ? AUDIO_URL : 'https://shomawinner762x39.github.io/spanish-trainer/audio/';
+  let audioIdx = null, actx = null, playing = null, sayToken = 0;
+  const bundles = new Map();
+  const cleanSay = t => t.replace(/[—]/g, '').trim();
+  function ensureCtx() {
+    try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {}
+    return actx;
   }
-  function sayAll(lines, done) {
-    if (!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    lines.forEach((t, i) => {
-      const u = new SpeechSynthesisUtterance(t.replace(/[—]/g, ''));
-      u.lang = voice ? voice.lang : 'es-MX'; if (voice) u.voice = voice; u.rate = 0.88;
-      if (i === lines.length - 1 && done) u.onend = done;
-      speechSynthesis.speak(u);
+  window.addEventListener('pointerdown', ensureCtx, { once: true, capture: true });
+  function loadIdx() {
+    if (!audioIdx) audioIdx = fetch(AUDIO_BASE + 'index.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+    return audioIdx;
+  }
+  async function sha12(t) {
+    const b = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(t));
+    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 12);
+  }
+  function bundle(name) {
+    if (!bundles.has(name)) bundles.set(name, fetch(AUDIO_BASE + name + '.mp3').then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .then(ab => new Promise((res, rej) => ensureCtx().decodeAudioData(ab, res, rej))).catch(e => { bundles.delete(name); throw e; }));
+    return bundles.get(name);
+  }
+  async function clipOf(text) {
+    const idx = await loadIdx(); const e = idx[await sha12(cleanSay(text))];
+    if (!e) throw 'no clip';
+    return { buf: await bundle(e[0]), start: e[1], dur: e[2] };
+  }
+  function prefetch(text) { clipOf(text).catch(() => {}); } // пока ученик печатает ответ
+  function stopSpeech() {
+    sayToken++;
+    if (playing) { try { playing.onended = null; playing.stop(); } catch (e) {} playing = null; }
+    try { speechSynthesis.cancel(); } catch (e) {}
+  }
+  function playBuf(c) {
+    return new Promise(res => {
+      const src = actx.createBufferSource(); src.buffer = c.buf; src.connect(actx.destination);
+      src.onended = () => { if (playing === src) playing = null; res(); };
+      playing = src; src.start(0, c.start, c.dur);
     });
+  }
+  function ttsLine(text, rate) {
+    return new Promise(res => {
+      if (!('speechSynthesis' in window)) return res();
+      const u = new SpeechSynthesisUtterance(cleanSay(text));
+      u.lang = voice ? voice.lang : 'es-MX'; if (voice) u.voice = voice; u.rate = rate || 0.9;
+      u.onend = u.onerror = () => res(); speechSynthesis.speak(u);
+    });
+  }
+  async function sayOne(text, token) {
+    try { const c = await clipOf(text); if (token !== sayToken) return; await playBuf(c); }
+    catch (e) { if (token === sayToken) await ttsLine(text); }
+  }
+  function say(text) { stopSpeech(); ensureCtx(); sayOne(text, sayToken); }
+  async function sayAll(lines, done) {
+    stopSpeech(); ensureCtx(); const token = sayToken;
+    for (const t of lines) { if (token !== sayToken) return; await sayOne(t, token); await new Promise(r => setTimeout(r, 250)); }
+    if (token === sayToken && done) done();
   }
   const speakBtn = text => el('button', { class: 'icon', type: 'button', title: T('Послушать'), 'aria-label': T('Послушать'), onclick: () => say(text) }, '▶');
 
@@ -12097,9 +14005,37 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   }
   function earlierTheories(id) { return Object.values(THEORY).filter(t => t.id < id); }
 
+  // ---------- раздел «Числа» ----------
+  const numBanks = {};
+  const bankOf = t => numBanks[t.id] || (numBanks[t.id] = t.num ? Num.bank(t.id, t.num, 100).map(b => Object.assign({ from: t.id }, b)) : []);
+  const numTask = (b, mode) => mode === 'listen'
+    ? { kind: 'listen', ru: '🔊', es: b.digits[0], digits: b.digits, speak: b.speak, words: b.alts[0], from: b.from }
+    : { kind: 'num', ru: b.disp, es: b.alts.join(' | '), speak: b.speak, from: b.from };
+  const genNum = (ths, n, mode, r) => pick(ths.flatMap(bankOf), n, r).map(b => numTask(b, mode));
+  function numTasks(item, r) {
+    const ths = levelTheory(item.level), bl = ths.filter(t => BY_ID[t.id].block === item.block);
+    const phr = (list, n) => pick(list.flatMap(x => sentences(x, true)), n, r);
+    if (item.type === 'K') {
+      const t = THEORY[item.theory]; if (!t) return [];
+      const prev = ths.filter(x => x.id < t.id);
+      return interleave(shuffle(sentences(t, false), r), [...genNum([t], 8, 'num', r), ...genNum([t], 4, 'listen', r), ...phr(prev, Math.min(5, prev.length * 3))], r);
+    }
+    if (item.type === 'O') return interleave(genNum(bl, 18, 'num', r), [...genNum(bl, 8, 'listen', r), ...phr(bl, 6)], r);
+    if (item.type === 'I') {
+      const older = ths.filter(x => BY_ID[x.id].block < item.block);
+      return interleave(phr(bl, 16), [...genNum(bl, 8, 'num', r), ...genNum(bl, 6, 'listen', r), ...phr(older, 4)], r);
+    }
+    if (item.type === 'F') {
+      const k = item.part === 10 ? 1.5 : 1;
+      return interleave(phr(ths, Math.round(18 * k)), [...genNum(ths, Math.round(12 * k), 'num', r), ...genNum(ths, Math.round(10 * k), 'listen', r)], r);
+    }
+    return [];
+  }
+
   function buildTasks(item, attempt) {
     const r = rng(item.id * 7919 + attempt * 104729);
     const lv = LEVELS[item.level];
+    if (lv.numbers) return numTasks(item, r);
     if (item.type === 'K') {
       const t = THEORY[item.theory]; if (!t) return [];
       const own = shuffle(sentences(t, false), r);
@@ -12151,7 +14087,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   const wkey = t => t.kind === 'form' ? 'f:' + t.verb + '|' + t.tense + '|' + t.person : 'p:' + first(t.es); // ключ без русского текста — одинаков на обоих языках
   function weakMiss(t, lessonId) {
     if (!state.weak) state.weak = {};
-    const k = wkey(t), w = state.weak[k] || { kind: t.kind, ru: t.ru, es: t.es, verb: t.verb, tense: t.tense, person: t.person, from: t.from || lessonId, misses: 0 };
+    const k = wkey(t), w = state.weak[k] || { kind: t.kind, ru: t.ru, es: t.es, verb: t.verb, tense: t.tense, person: t.person, speak: t.speak, digits: t.digits, words: t.words, from: t.from || lessonId, misses: 0 };
     w.misses++; w.streak = 0; w.at = w.t = Date.now(); w.es = t.es; state.weak[k] = w;
     const keys = Object.keys(state.weak);
     if (keys.length > WEAK_MAX) keys.sort((a, b) => state.weak[a].at - state.weak[b].at).slice(0, keys.length - WEAK_MAX).forEach(x => delete state.weak[x]);
@@ -12168,6 +14104,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     const list = shuffle(weakList(), r).sort((a, b) => (a.streak || 0) - (b.streak || 0) || b.misses - a.misses);
     return shuffle(list.slice(0, 20), r).map(w => w.kind === 'form'
       ? { kind: 'form', verb: w.verb, tense: w.tense, person: w.person, es: w.es, from: w.from }
+      : w.kind === 'num' || w.kind === 'listen' ? { kind: w.kind, ru: w.ru, es: w.es, speak: w.speak, digits: w.digits, words: w.words, from: w.from }
       : { kind: 'tr', ru: T(w.ru), es: w.es, from: w.from });
   }
   const dots = n => '●'.repeat(n) + '○'.repeat(WEAK_NEED - n);
@@ -12223,6 +14160,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   function tagsOf(t) {
     if (t.kind === 'form') return [{ v: t.verb, tn: t.tense, p: t.person }];
     if (t.cell) return [{ v: t.cell[0], tn: t.cell[1], p: t.cell[2] }];
+    if (t.kind === 'num' || t.kind === 'listen') return [];
     const w = norm(first(t.es)).split(' '), idx = formIndex(), out = [];
     for (let i = 0; i < w.length; i++) for (let n = 3; n >= 1; n--) { const g = idx.get(w.slice(i, i + n).join(' ')); if (g) { out.push(...g); break; } }
     return out;
@@ -12269,7 +14207,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
 
   // ---------- навигация ----------
   let view = 'home';
-  const isUnlocked = id => state.free || id === 1 || !!(state.done[id - 1] && state.done[id - 1].passed);
+  const isUnlocked = id => state.free || id === 1 || (BY_ID[id] && LEVELS[BY_ID[id].level].numbers && (id - 1) % 50 === 0) || !!(state.done[id - 1] && state.done[id - 1].passed); // «Числа» открыты сразу
   function status(id) { const d = state.done[id]; return d ? (d.passed ? 'passed' : 'tried') : (isUnlocked(id) ? 'open' : 'locked'); }
   function lessonTitle(item) {
     if (item.type === 'T') return THEORY[item.id] ? THEORY[item.id].t : T('Теория (готовится)');
@@ -12335,7 +14273,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
 
   function header(item) {
     return el('div', { class: 'lhead lv' + item.level },
-      el('button', { class: 'ghost back', type: 'button', onclick: () => { speechSynthesis && speechSynthesis.cancel(); renderHome(); } }, T('← Карта курса')),
+      el('button', { class: 'ghost back', type: 'button', onclick: () => { stopSpeech(); renderHome(); } }, T('← Карта курса')),
       el('div', { class: 'eyebrow' }, T('Урок ') + item.id + ' · ' + TYPE_NAME[item.type] + ' · ' + LEVELS[item.level].code + (item.block < 4 ? T(' · блок ') + (item.block + 1) : '')),
       el('h2', null, lessonTitle(item)));
   }
@@ -12382,7 +14320,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     const exBox = el('section', { class: 'card' }, el('h3', null, T('Примеры')),
       el('p', { class: 'hint' }, T('Переведите фразу, потом сверьтесь и повторите вслух 2–3 раза, как в уроке у автора.')),
       el('div', { class: 'row' }, el('button', { class: 'ghost', type: 'button', onclick: () => sayAll(t.ex.flatMap(p => [first(p[1]), first(p[1])])) }, T('▶ Слушать все примеры (каждый дважды)')),
-        el('button', { class: 'ghost', type: 'button', onclick: () => speechSynthesis && speechSynthesis.cancel() }, T('■ Стоп'))));
+        el('button', { class: 'ghost', type: 'button', onclick: () => stopSpeech() }, T('■ Стоп'))));
     const list = el('ol', { class: 'examples' });
     t.ex.forEach((p, i) => list.append(exampleRow(p, i)));
     exBox.append(list); main.append(exBox);
@@ -12431,7 +14369,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
       for (let i = 0; i < verbs.length; i += 4) main.append(el('section', { class: 'card' }, i === 0 ? el('h3', null, T('Все формы блока')) : null, conjTable(verbs.slice(i, i + 4), bl.tenses || lv.tenses, bl.persons)));
     }
     main.append(el('section', { class: 'finish' }, el('p', null, T('Посмотрите таблицы и проговорите формы вслух. Потом тренировка.')),
-      el('button', { class: 'primary', type: 'button', onclick: () => runTest(item) }, T('Начать тренировку форм'))));
+      el('button', { class: 'primary', type: 'button', onclick: () => runTest(item) }, lv.numbers ? T('Начать тренировку чисел') : T('Начать тренировку форм'))));
   }
 
   // ---------- контрольная ----------
@@ -12445,7 +14383,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     else {
       const base = buildTasks(item, attempt);
       const ex = new Set(base.filter(t => t.kind === 'form').map(t => t.verb + '|' + t.tense + '|' + t.person));
-      const [nf, np] = COV[item.type] || [0, 0];
+      const [nf, np] = LEVELS[item.level].numbers ? [0, 0] : (COV[item.type] || [0, 0]);
       tasks = spread(base, coverageTasks(item.id, nf, np, rng(item.id * 31 + attempt * 7 + 3), ex));
     }
     const main = $('#main'); main.innerHTML = '';
@@ -12469,7 +14407,11 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
       box.innerHTML = '';
       const prompt = t.kind === 'form'
         ? el('div', { class: 'prompt form' }, el('span', { class: 'verb' }, t.verb), el('span', { class: 'gloss' }, glossOf(t.verb)), el('span', { class: 'pers' }, personLabel(t.verb, t.person)), el('span', { class: 'tense' }, Conj.TENSES[t.tense]))
+        : t.kind === 'num' ? el('div', { class: 'prompt num' }, el('span', { class: 'big' }, t.ru), el('small', null, T('Напишите словами')))
+        : t.kind === 'listen' ? el('div', { class: 'prompt listen' }, el('button', { class: 'ghost', type: 'button', onclick: () => say(t.speak) }, '🔊 ' + T('Ещё раз')), el('small', null, T('Послушайте и запишите цифрами')))
         : el('div', { class: 'prompt' }, t.ru);
+      prefetch(t.speak || first(t.es));
+      if (t.kind === 'listen') setTimeout(() => say(t.speak), 150);
       const inp = el('input', { type: 'text', id: 'ans', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t.kind === 'form' ? T('форма глагола') : T('по-испански…') });
       const res = el('div', { class: 'result', hidden: true });
       const btn = el('button', { class: 'primary', type: 'button' }, T('Проверить'));
@@ -12477,7 +14419,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
       const go = () => {
         if (!answered) {
           answered = true;
-          const c = check(inp.value, t.es);
+          const c = t.kind === 'listen' ? { res: t.digits.map(Num.digitsNorm).includes(Num.digitsNorm(inp.value)) ? 'ok' : 'bad' } : check(inp.value, t.es);
           const okish = c.res !== 'bad';
           let weakNote = null;
           if (!(t.idx in firstTry)) { // в серию и в счётчик ошибок идёт только первая попытка
@@ -12489,16 +14431,17 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
           res.hidden = false; res.innerHTML = '';
           res.className = 'result ' + c.res;
           res.append(el('div', { class: 'verdict' }, c.res === 'ok' ? T('Верно') : c.res === 'accent' ? T('Верно, но проверьте ударения') : T('Неверно')),
-            el('div', { class: 'es' }, first(t.es), speakBtn(first(t.es))));
+            el('div', { class: 'es' }, first(t.es), speakBtn(t.speak || first(t.es))));
+          if (t.kind === 'listen') res.append(el('small', { class: 'alts' }, t.words));
           if (weakNote) res.append(el('small', { class: 'weaknote' }, weakNote));
           if (c.res === 'bad' && inp.value.trim()) res.append(el('div', { class: 'yours' }, T('Ваш ответ: ') + inp.value.trim()));
           const alts = t.es.split('|').slice(1).map(s => s.trim()); if (alts.length) res.append(el('small', { class: 'alts' }, T('Также верно: ') + alts.join(' · ')));
           if (!okish) {
-            mistakes.push({ id: W ? t.from : item.id, q: t.kind === 'form' ? t.verb + ' · ' + personLabel(t.verb, t.person) + ' · ' + Conj.TENSES[t.tense] : t.ru, a: first(t.es), g: inp.value.trim(), at: Date.now() });
+            mistakes.push({ id: W ? t.from : item.id, q: t.kind === 'form' ? t.verb + ' · ' + personLabel(t.verb, t.person) + ' · ' + Conj.TENSES[t.tense] : t.kind === 'listen' ? '🔊 ' + t.words : t.ru, a: first(t.es), g: inp.value.trim(), at: Date.now() });
             // повтор через несколько заданий, как «эхо» у автора
             if (retries < total) { queue.splice(Math.min(pos + 4, queue.length), 0, Object.assign({}, t)); retries++; }
           }
-          say(first(t.es));
+          say(t.speak || first(t.es));
           inp.disabled = true; btn.textContent = T('Дальше'); btn.focus();
         } else { pos++; next(); }
       };
