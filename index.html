@@ -1,5 +1,6 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Испанский">
-<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/";</script>
+<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/"; const BUILD = "20261006155145";
+(function(){ if(!/github\.io$/.test(location.hostname)) return; window.addEventListener("load", function(){ fetch(location.pathname + "?nocache=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.text(); }).then(function(t){ var m = t.match(/const BUILD = "([^"]+)"/); if (!m || m[1] === BUILD) return; try { if (sessionStorage.getItem("spt-build") === m[1]) return; sessionStorage.setItem("spt-build", m[1]); } catch (e) {} location.replace(location.pathname + "?v=" + m[1] + location.hash); }).catch(function(){}); }); })();</script>
 <title>Испанский по плейлистам</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
