@@ -684,7 +684,7 @@ const LEVELS = [
 ];
 
 const BLOCK_PATTERN = ['T', 'K', 'T', 'K', 'T', 'K', 'O', 'I', 'I', 'I'];
-const TYPE_NAME = { T: 'Теория', K: 'Контрольная', O: 'Обобщение', I: 'Итоговая по блоку', F: 'Итоговая по уровню', R: 'Чтение', H: 'Практика', Y: 'Видео' };
+const TYPE_NAME = { T: 'Теория', K: 'Контрольная', O: 'Обобщение', I: 'Итоговая по блоку', F: 'Итоговая по уровню', R: 'Чтение', H: 'Speaking practice', Y: 'Видео' };
 
 // Полный список 250 уроков
 function buildCourse() {
@@ -18234,7 +18234,7 @@ const I18N_EN = {
 "Перескажите вслух чтение о Пабло из этого блока своими словами.": "Retell this block's Pablo reading out loud in your own words.",
 "Посмотрите серию, YouTube или подкаст на испанском (лучше чилийский) и выпишите 10 новых фраз.": "Watch an episode, a YouTube video or a podcast in Spanish (Chilean if possible) and write down 10 new phrases.",
 "Напишите 10–15 предложений о себе по теме блока и прочитайте их вслух.": "Write 10–15 sentences about yourself on the block's topic and read them out loud.",
-"Час живой практики вне приложения по теме блока: ": "One hour of real practice outside the app on the block topic: ",
+"Час живой практики вне приложения по теме блока: ": "One hour of speaking practice outside the app on the block topic: ",
 "Главное — целый час испанского: говорить, слушать, писать. Отметьте, когда закончите: без этого следующий блок не откроется.": "What matters is a full hour of Spanish: speaking, listening, writing. Mark it when you finish: the next block won't open without it.",
 "Практика отмечена: ": "Practice marked: ",
 "✓ Я сделал 1 час практики": "✓ I did 1 hour of practice",
@@ -18506,7 +18506,8 @@ const I18N_EN = {
 "Итоговое видео уровня. Посмотрите его целиком на YouTube (можно с испанскими субтитрами — кнопка CC), потом пройдите тест: 16 вопросов по-испански, нужно 80%.": "The final video of the level. Watch it all on YouTube (Spanish subtitles via the CC button are fine), then take the test: 16 questions in Spanish, you need 80%.",
 "Пройти тест ещё раз": "Take the test again",
 "Я посмотрел — к тесту →": "I've watched it — go to the test →",
-"Видео пройдено. Следующий уровень открыт.": "Video passed. The next level is open."
+"Видео пройдено. Следующий уровень открыт.": "Video passed. The next level is open.",
+"Час разговорной практики (speaking) вне приложения по теме блока: ": "One hour of speaking practice outside the app on the block topic: "
 };
 
 // ---- i18n.js ----
@@ -19199,7 +19200,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   function status(id) { const d = state.done[id]; return d ? (d.passed ? 'passed' : 'tried') : (isUnlocked(id) ? 'open' : 'locked'); }
   function lessonTitle(item) {
     if (item.type === 'R') return T('Чтение: ') + item.reading.t;
-    if (item.type === 'H') return '1 hour practice';
+    if (item.type === 'H') return '1 hour speaking practice';
     if (item.type === 'Y') return T('Видео: ') + item.video.t;
     if (item.type === 'T') return THEORY[item.id] ? THEORY[item.id].t : T('Теория (готовится)');
     if (item.type === 'K') return T('Контрольная: ') + (THEORY[item.theory] ? THEORY[item.theory].t : '');
@@ -19248,7 +19249,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
           },
             el('span', { class: 'num' }, it.type === 'R' ? '📖' : it.type === 'H' ? '⏱' : it.type === 'Y' ? '🎬' : it.id),
             el('span', { class: 'kind' }, TYPE_NAME[it.type]),
-            el('span', { class: 'name' }, it.type === 'R' ? it.reading.t : it.type === 'H' ? '1 hour practice' : it.type === 'Y' ? it.video.t : it.type === 'T' || it.type === 'K' ? lessonTitle(it).replace(T('Контрольная: '), '') : (it.type === 'F' ? T('часть ') + it.part : (it.type === 'I' ? T('часть ') + it.part : ''))),
+            el('span', { class: 'name' }, it.type === 'R' ? it.reading.t : it.type === 'H' ? '1 hour speaking practice' : it.type === 'Y' ? it.video.t : it.type === 'T' || it.type === 'K' ? lessonTitle(it).replace(T('Контрольная: '), '') : (it.type === 'F' ? T('часть ') + it.part : (it.type === 'I' ? T('часть ') + it.part : ''))),
             el('span', { class: 'score' }, d && d.best != null ? Math.round(d.best * 100) + '%' : (st === 'passed' ? '✓' : ''))));
         }))));
     });
@@ -19540,7 +19541,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     const main = $('#main'); main.innerHTML = ''; const bl = LEVELS[item.level].blocks[item.block], d = state.done[item.id];
     main.append(header(item),
       el('section', { class: 'card practice' },
-        el('p', null, T('Час живой практики вне приложения по теме блока: ') + bl.t + '.'),
+        el('p', null, T('Час разговорной практики (speaking) вне приложения по теме блока: ') + bl.t + '.'),
         el('ul', null, PRACTICE_IDEAS.map(x => el('li', null, T(x)))),
         el('p', { class: 'hint' }, T('Главное — целый час испанского: говорить, слушать, писать. Отметьте, когда закончите: без этого следующий блок не откроется.'))),
       d && d.passed
