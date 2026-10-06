@@ -1,5 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Испанский">
-<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/"; const BUILD = "20261006155145";
+<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/"; const BUILD = "20261006200614";
 (function(){ if(!/github\.io$/.test(location.hostname)) return; window.addEventListener("load", function(){ fetch(location.pathname + "?nocache=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.text(); }).then(function(t){ var m = t.match(/const BUILD = "([^"]+)"/); if (!m || m[1] === BUILD) return; try { if (sessionStorage.getItem("spt-build") === m[1]) return; sessionStorage.setItem("spt-build", m[1]); } catch (e) {} location.replace(location.pathname + "?v=" + m[1] + location.hash); }).catch(function(){}); }); })();</script>
 <title>Испанский по плейлистам</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18508,7 +18508,8 @@ const I18N_EN = {
 "Пройти тест ещё раз": "Take the test again",
 "Я посмотрел — к тесту →": "I've watched it — go to the test →",
 "Видео пройдено. Следующий уровень открыт.": "Video passed. The next level is open.",
-"Час разговорной практики (speaking) вне приложения по теме блока: ": "One hour of speaking practice outside the app on the block topic: "
+"Час разговорной практики (speaking) вне приложения по теме блока: ": "One hour of speaking practice outside the app on the block topic: ",
+" Показать все уроки — только посмотреть, до перезагрузки страницы (автор советует идти строго по порядку)": " Show all lessons — just to look, until the page is reloaded (the author recommends going strictly in order)"
 };
 
 // ---- i18n.js ----
@@ -18618,7 +18619,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     for (const k of Object.keys(o.weak)) { // старые ключи (с русским текстом) → новые
       const w = o.weak[k]; if (k.startsWith('p:') && w && w.es) { const nk = 'p:' + w.es.split('|')[0].trim(); if (nk !== k) { delete o.weak[k]; if (!o.weak[nk] || (o.weak[nk].t || 0) < (w.t || 0)) o.weak[nk] = w; } }
     }
-    o.free = !!(a.free || b.free);
+    o.free = false; // «открыть все уроки» — только просмотр на этом экране, не сохраняется и не синхронизируется
     o.last = a.last || b.last || 1;
     return o;
   }
@@ -19177,7 +19178,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   }
   // до какого урока открыта программа (для тренировки форм вне уроков)
   function reachLesson() {
-    if (state.free) return 250;
+    if (freeView) return 250;
     const next = COURSE.find(c => !(state.done[c.id] && state.done[c.id].passed));
     return next ? next.id : 250;
   }
@@ -19191,7 +19192,8 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     const r = BY_ID[1000 + id - 10], h = BY_ID[3000 + id - 10];
     return (!r || passedId(r.id) || before(READING_SINCE)) && (!h || passedId(h.id) || before(PRACTICE_SINCE));
   }
-  const isUnlocked = id => state.free || (id >= 1000 ? passedId(BY_ID[id].start + 9)
+  let freeView = false; // временно открыть все уроки (до перезагрузки)
+  const isUnlocked = id => freeView || (id >= 1000 ? passedId(BY_ID[id].start + 9)
     : id === 1 || (BY_ID[id] && LEVELS[BY_ID[id].level].numbers && (id - 1) % 50 === 0) || (passedId(id - 1) && readingGate(id) && videoGate(id))); // «Числа» открыты сразу
   function videoGate(id) { // первый урок уровня ждёт видео предыдущего уровня
     if ((id - 1) % 50 !== 0 || id === 1) return true;
@@ -19255,8 +19257,8 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
         }))));
     });
     main.append(el('section', { class: 'settings' },
-      el('label', null, el('input', { type: 'checkbox', id: 'free', checked: state.free, onchange: e => { state.free = e.target.checked; save(); renderHome(); } }),
-        T(' Открыть все уроки (автор советует идти строго по порядку)')),
+      el('label', null, el('input', { type: 'checkbox', id: 'free', checked: freeView, onchange: e => { freeView = e.target.checked; renderHome(); } }),
+        T(' Показать все уроки — только посмотреть, до перезагрузки страницы (автор советует идти строго по порядку)')),
       el('button', { class: 'ghost', type: 'button', onclick: renderWords }, T('Все слова курса')),
       el('button', { class: 'ghost', type: 'button', onclick: renderVerbs }, T('Глаголы и формы')),
       el('button', { class: 'ghost', type: 'button', onclick: renderTime }, T('Время занятий')),
