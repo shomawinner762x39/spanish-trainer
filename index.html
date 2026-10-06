@@ -62,6 +62,14 @@ h3 { font: 600 17px/1.3 var(--body); margin: 0 0 10px; }
 .lesson.tH { border-left: 4px solid #8a7be0; background: color-mix(in srgb, var(--surface) 85%, #8a7be0); }
 .lesson.tH .num { font-size: 1.3em; }
 .practice ul { margin: 8px 0 12px; padding-left: 20px; line-height: 1.6; }
+.lesson.tY { border-left: 4px solid #e05a5a; background: color-mix(in srgb, var(--surface) 85%, #e05a5a); }
+.lesson.tY .num { font-size: 1.3em; }
+.vbox .vopen { display: inline-block; text-decoration: none; background: var(--accent); color: var(--accent-ink); font-weight: 700; padding: 12px 18px; border-radius: 10px; margin: 6px 0 4px; }
+.vbox h3 { margin: 14px 0 6px; font-size: 1rem; }
+.vgl { list-style: none; padding: 0; margin: 0; columns: 2 260px; column-gap: 24px; }
+.vgl li { margin: 0 0 6px; break-inside: avoid; }
+.vgl a { font-variant-numeric: tabular-nums; opacity: .7; text-decoration: none; margin-right: 4px; }
+a.tlink { text-decoration: none; display: inline-flex; align-items: center; }
 .reading { padding: 18px 20px; }
 .rpara { margin: 0 0 18px; }
 .rpara .res { font-size: 1.15rem; line-height: 1.7; margin: 0 0 6px; }
@@ -676,7 +684,7 @@ const LEVELS = [
 ];
 
 const BLOCK_PATTERN = ['T', 'K', 'T', 'K', 'T', 'K', 'O', 'I', 'I', 'I'];
-const TYPE_NAME = { T: 'Теория', K: 'Контрольная', O: 'Обобщение', I: 'Итоговая по блоку', F: 'Итоговая по уровню', R: 'Чтение', H: 'Практика' };
+const TYPE_NAME = { T: 'Теория', K: 'Контрольная', O: 'Обобщение', I: 'Итоговая по блоку', F: 'Итоговая по уровню', R: 'Чтение', H: 'Практика', Y: 'Видео' };
 
 // Полный список 250 уроков
 function buildCourse() {
@@ -7114,6 +7122,17 @@ const REVIEW = [
   ['amar', 'cond', 1, 'Ты бы полюбил эту страну.', 'Amarías este país.'],
   ['amar', 'cond', 3, 'Мы бы полюбили жизнь у моря.', 'Amaríamos la vida junto al mar. | Amaríamos la vida cerca del mar.']
 ];
+
+// ---- content_video.js ----
+// ВИДЕО в конце каждого уровня: ссылка на YouTube, слова из видео, тест (вопросы по-испански, перевод по кнопке).
+// Сгенерировано scratchpad/video/gen_video.py по расшифровкам субтитров YouTube. Тексты видео сюда не копируются.
+const VIDEO = {};
+VIDEO[0] = {"id": "oYBl3CcVmZ4", "t": "Breakfast in Slow Spanish", "len": "7:13", "where": "Испания (Барселона), медленная речь", "gl": [["desayunar", "завтракать", 10], ["el piso", "квартира (в Испании)", 23], ["poner la mesa", "накрыть на стол", 78], ["soler + inf.", "обычно (что-то делать)", 96], ["dulce / salado", "сладкое / солёное", 104], ["la ensaimada", "сладкая булочка с Майорки", 138], ["sin azúcar, sin leche", "без сахара, без молока", 151], ["la prensa francesa", "френч-пресс", 156], ["se rompió", "сломалась", 161], ["el huevo estrellado / frito", "яичница", 173], ["revueltos / cocidos / pochados", "болтунья / варёные / пашот", 202], ["la yema", "желток", 219], ["la avena", "овсянка", 259], ["el té", "чай", 319], ["el agua hirviendo", "кипяток", 367], ["el que espera desespera", "кто ждёт, тот теряет терпение (поговорка)", 360]], "tf": [["Primero desayunan y después graban en Barcelona.", "Сначала они завтракают, а потом снимают в Барселоне.", true, 3], ["Desayunan en un restaurante.", "Они завтракают в ресторане.", false, 23], ["Una persona no puede empezar el día sin café.", "Один человек не может начать день без кофе.", true, 98], ["Su café tiene azúcar y leche.", "В его кофе есть сахар и молоко.", false, 147], ["La ensaimada es típica de México.", "Энсаймада — типичная выпечка Мексики.", false, 138], ["Aida desayuna avena con yogur y una manzana.", "Аида завтракает овсянкой с йогуртом и яблоком.", true, 255]], "mc": [["¿Dónde desayunan?", "Где они завтракают?", ["en el piso de Juanjo", "en un café", "en el parque"], ["в квартире Хуанхо", "в кафе", "в парке"], 23], ["¿Quién llega también a desayunar?", "Кто ещё приходит завтракать?", ["Harry", "un vecino", "el papá de Juanjo"], ["Гарри", "сосед", "папа Хуанхо"], 33], ["¿Qué se rompió?", "Что сломалось?", ["la prensa francesa", "la cafetera", "la taza"], ["френч-пресс", "кофеварка", "чашка"], 161], ["¿Qué huevos le gustan más?", "Какие яйца ему (ей) нравятся больше всего?", ["pochados", "fritos", "revueltos"], ["пашот", "жареные", "болтунья"], 207], ["¿Qué prefiere tomar una chica al final?", "Что предпочитает пить одна из девушек в конце?", ["té", "café", "jugo de naranja"], ["чай", "кофе", "апельсиновый сок"], 319]], "sa": [["¿De dónde es típica la ensaimada?", "Откуда родом энсаймада?", "de Mallorca | Mallorca", 138], ["¿De qué es la leche del café con leche?", "Из чего молоко в кофе с молоком?", "de avena | avena", 186], ["¿Qué fruta come Aida con la avena?", "Какой фрукт Аида ест с овсянкой?", "una manzana | manzana | la manzana", 259], ["¿Qué ponen primero en la taza para hacer el té?", "Что сначала кладут в чашку, чтобы сделать чай?", "la bolsa de té | una bolsa de té | bolsa de té | la bolsa", 364], ["Termina el refrán: «El que espera…»", "Закончите поговорку: «Кто ждёт…»", "desespera", 360]]};
+VIDEO[1] = {"id": "obRbyVMIQLo", "t": "Pau's Morning Routine in Slow Spanish", "len": "6:36", "where": "Мексика, медленная речь", "gl": [["tengo sueño", "хочу спать", 7], ["la alarma", "будильник", 35], ["despertarse (me despierto)", "просыпаться", 42], ["apagar", "выключать", 49], ["levantarse (me levanto)", "вставать", 55], ["echarse agua en la cara", "плеснуть водой в лицо", 75], ["estirarse (me estiro)", "потягиваться", 106], ["meditar", "медитировать", 117], ["lentamente", "медленно", 139], ["los correos", "электронные письма", 156], ["lavarse los dientes", "чистить зубы", 210], ["el cepillo", "зубная щётка", 226], ["bañarse", "принимать душ / мыться", 236], ["peinarse", "причёсываться", 259], ["el protector solar", "солнцезащитный крем", 274], ["maquillarse", "краситься", 282], ["cargar", "заряжать", 312], ["los audífonos", "наушники", 322], ["los zapatos", "туфли, обувь", 345]], "tf": [["Pau pone la alarma a las siete.", "Пау ставит будильник на семь.", true, 35], ["Pau siempre se despierta tarde.", "Пау всегда просыпается поздно.", false, 42], ["Pau medita una hora.", "Пау медитирует час.", true, 117], ["Pau toma el café muy rápido.", "Пау пьёт кофе очень быстро.", false, 139], ["Pau se lava los dientes y después se baña.", "Пау чистит зубы, а потом принимает душ.", true, 210], ["Pau sale de casa sin zapatos.", "Пау выходит из дома без обуви.", false, 345]], "mc": [["¿A qué hora se va a dormir Pau?", "Во сколько Пау ложится спать?", ["a las diez de la noche", "a las once de la noche", "a las siete de la mañana"], ["в десять вечера", "в одиннадцать вечера", "в семь утра"], 3], ["¿Qué hace Pau antes de meditar?", "Что Пау делает перед медитацией?", ["se echa agua en la cara", "toma un café", "se baña"], ["плещет водой в лицо", "пьёт кофе", "принимает душ"], 75], ["¿Qué mira Pau después del café?", "Что Пау смотрит после кофе?", ["su calendario y sus mensajes", "la televisión", "el periódico"], ["свой календарь и сообщения", "телевизор", "газету"], 154], ["¿Qué se pone Pau en la cara?", "Что Пау наносит на лицо?", ["protector solar", "pasta de dientes", "agua caliente"], ["солнцезащитный крем", "зубную пасту", "горячую воду"], 274], ["¿Qué lleva Pau cuando sale?", "Что Пау берёт с собой, когда выходит?", ["la computadora y las llaves", "un libro y un café", "la bicicleta"], ["компьютер и ключи", "книгу и кофе", "велосипед"], 326]], "sa": [["¿Cuántas horas medita Pau?", "Сколько часов медитирует Пау?", "una | una hora", 117], ["¿Qué se prepara Pau después de meditar?", "Что Пау готовит себе после медитации?", "un café | café", 128], ["¿Qué pone Pau en el cepillo?", "Что Пау кладёт на щётку?", "pasta | pasta de dientes | la pasta", 214], ["¿Para qué es el cable?", "Для чего кабель?", "para la computadora | para cargar la computadora | la computadora", 312], ["¿Qué se pone Pau antes de los zapatos?", "Что Пау надевает (наносит) перед обувью?", "perfume | el perfume", 332]]};
+VIDEO[2] = {"id": "J_U3D_QAw7c", "t": "How Did You Get Your Job?", "len": "10:37", "where": "Испания (Барселона): здесь говорят vosotros (queréis), «me cogieron» = «me contrataron»", "gl": [["conseguir (conseguiste)", "получить, добыть (ты получил)", 0], ["actualmente", "в настоящее время", 2], ["el despacho", "контора, бюро", 20], ["jubilado / jubilarse", "на пенсии / выйти на пенсию", 31], ["peatonal", "пешеходная", 73], ["contaminar", "загрязнять", 75], ["el quirófano", "операционная", 87], ["cobrar", "принимать оплату", 97], ["empático", "умеющий сопереживать", 196], ["la oficina de empleo (el INEM)", "биржа труда", 361], ["me contrataron / me cogieron", "меня наняли / меня взяли (Испания)", 323], ["la carrera", "учёба в университете", 326], ["las oposiciones", "конкурсные экзамены на госслужбу", 330], ["enterarse (me enteré)", "узнать (я узнал)", 351], ["el currículum", "резюме", 379], ["el consejo", "совет", 465]], "tf": [["Las entrevistas son en Barcelona.", "Интервью проходят в Барселоне.", true, 9], ["Una mujer trabaja en su tienda desde hace catorce años.", "Одна женщина работает в своём магазине уже четырнадцать лет.", true, 143], ["Un señor trabajó cuarenta años de profesor.", "Один мужчина сорок лет проработал учителем.", true, 180], ["Un chico encontró trabajo cuatro días después de ir a la oficina de empleo.", "Один парень нашёл работу через четыре дня после того, как сходил на биржу труда.", true, 315], ["La carrera de medicina duró solo un año.", "Учёба на врача длилась всего год.", false, 326], ["Todos dicen que es muy fácil encontrar trabajo.", "Все говорят, что найти работу очень легко.", false, 420]], "mc": [["¿Por qué cierran la calle los fines de semana?", "Почему по выходным закрывают улицу?", ["para los peatones", "para los autos", "para un partido"], ["для пешеходов", "для машин", "для матча"], 71], ["¿Qué hace la anestesista en el quirófano?", "Что делает анестезиолог в операционной?", ["prepara a los pacientes", "vende ropa", "corta calles"], ["готовит пациентов", "продаёт одежду", "перекрывает улицы"], 87], ["¿Cuántos años duró la carrera de medicina?", "Сколько лет длилась учёба на врача?", ["seis", "cuatro", "diez"], ["шесть", "четыре", "десять"], 326], ["¿Cómo se enteró una persona de su trabajo?", "Как один человек узнал о своей работе?", ["por un amigo", "por la televisión", "por el periódico"], ["через друга", "по телевизору", "из газеты"], 351], ["¿Qué quiere ser el chico joven en el futuro?", "Кем хочет стать молодой парень в будущем?", ["psicólogo", "médico", "arquitecto"], ["психологом", "врачом", "архитектором"], 543]], "sa": [["¿En qué ciudad hicieron las entrevistas?", "В каком городе брали интервью?", "en Barcelona | Barcelona", 9], ["¿Cuántas horas al día estudió el médico para las oposiciones?", "Сколько часов в день врач учился к экзаменам?", "ocho o diez | de ocho a diez | ocho | diez | ocho o diez horas", 339], ["¿Qué es el INEM?", "Что такое INEM?", "una oficina de empleo | oficina de empleo | la oficina de empleo", 361], ["Primer consejo: buscar algo que te…", "Первый совет: искать то, что тебе…", "guste | te guste", 472], ["¿Dónde le gustaría trabajar a un chico?", "Где хотел бы работать один парень?", "fuera | afuera | en otro país | fuera de España", 554]]};
+VIDEO[3] = {"id": "4nvLqyTiJjA", "t": "What Would You Do If You Won the Lottery?", "len": "8:20", "where": "Мексика и Колумбия", "gl": [["la lotería", "лотерея", 31], ["el billete / el boleto", "билет", 28], ["el juego de azar", "азартная игра", 44], ["ganar", "выиграть", 48], ["la suerte", "удача", 74], ["seguido", "часто", 84], ["el puesto", "ларёк, киоск", 109], ["el Mundial", "чемпионат мира", 139], ["el terreno", "участок земли", 152], ["revender / sacar el doble", "перепродать / выручить вдвое больше", 155], ["el carrito", "машина (Мекс., разг.)", 158], ["el arbolito", "ёлочка", 192], ["una cantidad considerable", "приличная сумма", 264], ["donar", "пожертвовать", 358], ["la fundación", "фонд", 365], ["los animales de la calle", "бездомные животные", 369], ["inculcar", "прививать (ценности)", 432]], "tf": [["Un amigo de la presentadora compró un billete de lotería.", "Друг ведущей купил лотерейный билет.", true, 28], ["Una persona compra lotería todas las semanas.", "Один человек покупает лотерею каждую неделю.", false, 105], ["Un hombre ganó un viaje al Mundial de mil novecientos noventa y cuatro.", "Один мужчина выиграл поездку на чемпионат мира 1994 года.", true, 132], ["Con el dinero del «chance», una familia compró un arbolito para la casa.", "На деньги от «chance» семья купила ёлочку для дома.", true, 190], ["Nadie donaría dinero a los animales.", "Никто не пожертвовал бы деньги животным.", false, 361], ["Una pareja tiene una hija de diez años.", "У одной пары есть десятилетняя дочь.", true, 432]], "mc": [["¿Cuántas veces al año compra lotería una persona?", "Сколько раз в год один человек покупает лотерею?", ["dos o tres", "cada semana", "nunca"], ["два-три", "каждую неделю", "никогда"], 105], ["¿Adónde fue el viaje que ganó un hombre?", "Куда была поездка, которую выиграл мужчина?", ["a Estados Unidos", "a Colombia", "a Turquía"], ["в США", "в Колумбию", "в Турцию"], 135], ["¿Qué compró un hombre con el dinero del terreno?", "Что купил мужчина на деньги за участок?", ["un carrito", "una casa", "un boleto de avión"], ["машину", "дом", "билет на самолёт"], 158], ["¿Adónde quiere viajar una mujer?", "Куда хочет поехать одна женщина?", ["a Machu Picchu", "a Estados Unidos", "a Cuernavaca"], ["в Мачу-Пикчу", "в США", "в Куэрнаваку"], 289], ["¿A quién donaría dinero una persona?", "Кому один человек пожертвовал бы деньги?", ["a los niños con cáncer", "a un equipo de fútbol", "a su jefe"], ["детям, больным раком", "футбольной команде", "своему начальнику"], 377]], "sa": [["¿Cuántos dólares ganó una persona en la lotería?", "Сколько долларов выиграл один человек в лотерею?", "dos | dos dólares | uno o dos | uno o dos dólares", 112], ["¿En qué año ganó el viaje?", "В каком году он выиграл поездку?", "mil novecientos noventa y cuatro | en mil novecientos noventa y cuatro | 1994", 135], ["Vendió el terreno y le sacó el…", "Он продал участок и выручил…", "doble | el doble", 158], ["¿Qué harían primero muchas personas con el dinero?", "Что многие сделали бы с деньгами в первую очередь?", "viajar", 270], ["¿Cuántos años tiene la hija de la pareja?", "Сколько лет дочери этой пары?", "diez | diez años", 432]]};
+VIDEO[4] = {"id": "iq58Wt40b-A", "t": "What Were You Like As A Child?", "len": "10:17", "where": "Мексика (Мехико), живая речь с мексиканскими словечками", "gl": [["la infancia", "детство", 0], ["enojón", "вспыльчивый, сердитый (Мекс.)", 20], ["chillón", "плакса", 33], ["el miedo a la oscuridad", "страх темноты", 37], ["berrinchuda", "капризная (Мекс.)", 65], ["atrevida", "смелая, отчаянная", 77], ["traviesa / la travesura", "озорная / шалость", 82], ["los primos", "двоюродные братья", 82], ["regañar", "ругать", 115], ["la lagartija", "ящерица", 143], ["la paleta", "леденец на палочке", 153], ["el timbre", "дверной звонок", 165], ["las escondidas", "прятки", 174], ["la muñeca", "кукла", 228], ["el peluche", "мягкая игрушка", 266], ["el bombero", "пожарный", 346], ["la enfermería", "сестринское дело", 432], ["superar los miedos", "преодолеть страхи", 460], ["risueña", "улыбчивая, смешливая", 477]], "tf": [["Las entrevistas son en la Ciudad de México.", "Интервью проходят в Мехико.", true, 7], ["Un chico tenía miedo a la oscuridad.", "Один парень боялся темноты.", true, 37], ["Una chica era la única niña entre muchos primos.", "Одна девушка была единственной девочкой среди многих двоюродных братьев.", true, 82], ["Una chica era muy sociable y salía mucho.", "Одна девушка была очень общительной и много гуляла.", false, 129], ["Un chico jugaba con el primer Xbox.", "Один парень играл в первый Xbox.", true, 213], ["Todos querían ser astronautas.", "Все хотели стать космонавтами.", false, 346]], "mc": [["¿Qué le encantaba hacer a la chica atrevida?", "Что обожала делать смелая девочка?", ["subir a los árboles", "jugar con Barbies", "ver la televisión"], ["лазить по деревьям", "играть в Барби", "смотреть телевизор"], 79], ["¿Por qué lo regañaban en la escuela?", "За что его ругали в школе?", ["porque era hiperactivo", "porque llegaba tarde", "porque no estudiaba"], ["потому что он был гиперактивным", "потому что он опаздывал", "потому что он не учился"], 112], ["¿Cuál era una de sus travesuras?", "Какой была одна из их шалостей?", ["robar paletas", "romper ventanas", "pintar paredes"], ["воровать леденцы", "бить окна", "разрисовывать стены"], 153], ["¿Qué era «el avión»?", "Что такое «el avión»?", ["un juego con números en el piso", "un juguete", "un viaje"], ["игра с цифрами на земле (классики)", "игрушка", "поездка"], 249], ["¿Qué estudió la chica que quería ser abogada?", "Что изучала девушка, которая хотела стать адвокатом?", ["enfermería", "derecho", "arquitectura"], ["сестринское дело", "право", "архитектуру"], 432]], "sa": [["¿A qué parque la llevaban sus papás?", "В какой парк её водили родители?", "al parque España | parque España | al Parque España | Parque España", 138], ["¿En qué andaban con los vecinos en la calle?", "На чём катались с соседями по улице?", "en bici | bici | en bicicleta | bicicleta", 98], ["¿Con qué muñecas jugaba mucho una chica?", "С какими куклами много играла одна девушка?", "Barbies | con Barbies | las Barbies | con las Barbies", 193], ["¿Hasta qué número tenían que llegar en «el avión»?", "До какого числа нужно было допрыгать в «el avión»?", "diez | al diez | hasta el diez | el diez", 259], ["¿Qué quería ser el chico que tenía un juego de química?", "Кем хотел стать мальчик, у которого был набор юного химика?", "químico | un químico", 385]]};
+VIDEO[5] = {"id": "7nh5k2xVT9I", "t": "What Can You Get for $5 in Mexico City?", "len": "9:12", "where": "Мексика (Мехико), цены в мексиканских песо", "gl": [["el billete", "купюра", 0], ["equivale a", "равняется", 4], ["alcanzar (te alcanza)", "хватать (тебе хватит)", 67], ["el taco de guisado", "тако с тушёной начинкой", 69], ["el frijol", "фасоль", 83], ["la tortilla", "кукурузная лепёшка", 87], ["la comida corrida", "комплексный обед", 105], ["la fonda", "дешёвая столовая", 115], ["el postre", "десерт", 125], ["se me antojó", "мне захотелось", 139], ["la entrada al cine", "билет в кино", 160], ["el bote de crema", "банка сливок", 214], ["el sobre", "пакетик", 290], ["las chanclas", "шлёпанцы", 294], ["la canasta básica", "потребительская корзина", 372], ["el trayecto", "поездка (в одну сторону)", 393], ["ida y vuelta", "туда и обратно", 407]], "tf": [["Cien pesos son casi seis dólares.", "Сто песо — это почти шесть долларов.", true, 4], ["Un taco de guisado cuesta doce pesos.", "Тако с тушёной начинкой стоит двенадцать песо.", true, 69], ["Con cien pesos puedes comprar veinte tacos de guisado.", "На сто песо можно купить двадцать тако.", false, 76], ["Una comida corrida cuesta entre sesenta y cien pesos.", "Комплексный обед стоит от шестидесяти до ста песо.", true, 128], ["Hace cinco años el kilo de tortillas costaba veintidós pesos.", "Пять лет назад килограмм тортилий стоил двадцать два песо.", false, 380], ["El metro de la Ciudad de México cuesta cinco pesos.", "Метро в Мехико стоит пять песо.", true, 396]], "mc": [["¿Cuánto cuesta una caja de cigarros?", "Сколько стоит пачка сигарет?", ["setenta y cinco pesos", "cien pesos", "doce pesos"], ["семьдесят пять песо", "сто песо", "двенадцать песо"], 43], ["¿Cuánto costó el agua de un litro?", "Сколько стоила литровая бутылка воды?", ["veinticinco pesos", "cinco pesos", "sesenta pesos"], ["двадцать пять песо", "пять песо", "шестьдесят песо"], 185], ["¿Cuántos kilos de azúcar puedes comprar con cien pesos?", "Сколько килограммов сахара можно купить на сто песо?", ["cuatro", "dos", "diez"], ["четыре", "два", "десять"], 284], ["¿Cuánto cuesta hoy el kilo de tortillas?", "Сколько сегодня стоит килограмм тортилий?", ["veintidós pesos", "once pesos con cincuenta", "doce pesos"], ["двадцать два песо", "одиннадцать песо пятьдесят", "двенадцать песо"], 385], ["¿Cuánto cuesta el metrobús?", "Сколько стоит метробус?", ["seis pesos", "cinco pesos", "veinticinco pesos"], ["шесть песо", "пять песо", "двадцать пять песо"], 385]], "sa": [["¿Cuántos tacos de guisado puedes comprar con cien pesos?", "Сколько тако можно купить на сто песо?", "ocho | ocho tacos | 8", 76], ["¿Cuántos gramos de café puedes comprar con cien pesos?", "Сколько граммов кофе можно купить на сто песо?", "cuatrocientos | cuatrocientos gramos | 400", 290], ["¿Cuántos sobres de comida para perro?", "Сколько пакетиков корма для собак?", "diez | diez sobres | 10", 290], ["¿Para cuántos trayectos alcanza en el metro?", "На сколько поездок на метро хватит?", "veinte | veinte trayectos | 20", 400], ["¿En qué año graban el video?", "В каком году снимают видео?", "dos mil veintitrés | en dos mil veintitrés | 2023", 16]]};
 
 // ---- content_reading.js ----
 // ЧТЕНИЕ — история Пабло (сюжет: tools/reading/STORY.md). Один текст после каждого блока.
@@ -14649,7 +14668,7 @@ const I18N_EN = {
 "Как было, что у кого было: Tenía un muñeco. Quería ser bailarina. Vivía cerca del mar.": "What it was like, who had what: Tenía un muñeco. Quería ser bailarina. Vivía cerca del mar.",
 "Чередования нет": "No stem change",
 "В imperfecto корень не меняется: quería, podía, dormía, pedía.": "In imperfecto the stem does not change: quería, podía, dormía, pedía.",
-"игрушка": "toy",
+"игрушка": "a toy",
 "игрушечная фигурка (кукла — la muñeca)": "toy figure, doll (girl's doll — la muñeca)",
 "маскарадный костюм": "costume",
 "балерина": "ballerina",
@@ -15229,7 +15248,7 @@ const I18N_EN = {
 "девятьсот": "nine hundred",
 "километр": "kilometer",
 "метр": "meter",
-"поездка": "trip",
+"поездка": "a trip",
 "100, 101, 110.": "100, 101, 110.",
 "150, 199.": "150, 199.",
 "200, 300, 400.": "200, 300, 400.",
@@ -16173,7 +16192,7 @@ const I18N_EN = {
 "(todos los días) каждый день": "(todos los días) every day",
 "дни": "days",
 "из, от; (pastel de chocolate) шоколадный торт": "of, from; (pastel de chocolate) chocolate cake",
-"дом": "house, home",
+"дом": "a house",
 "(soy yo) это я (ser)": "(soy yo) it's me (ser)",
 "мы ходили, сходили (ir)": "we went (ir)",
 "в, на, к": "to, at",
@@ -16380,7 +16399,7 @@ const I18N_EN = {
 "хорошо": "well, fine",
 "(por la mañana) утром": "(por la mañana) in the morning",
 "я пью (tomar)": "I drink (tomar)",
-"кофе": "a coffee",
+"кофе": "coffee",
 "я ем (comer)": "I eat (comer)",
 "булочка, хлеб": "bun, bread",
 "стоит (costar)": "costs (costar)",
@@ -16965,7 +16984,7 @@ const I18N_EN = {
 "его, свой": "his, her",
 "(de la tarde) дня": "(de la tarde) in the afternoon",
 "карта (банковская)": "(bank) card",
-"телевизор": "TV",
+"телевизор": "the TV",
 "мы пьём (tomar)": "we drink (tomar)",
 "один, какой-то; (un poco) немного": "a, one; (un poco) a little",
 "и; (¿y…?) а…?": "and; (¿y…?) and what about…?",
@@ -18050,7 +18069,7 @@ const I18N_EN = {
 "первое": "first",
 "третье": "third",
 "Где Камила поговорила с Пабло после турнира?": "Where did Camila talk with Pablo after the tournament?",
-"в кафе": "at the café",
+"в кафе": "in a café",
 "в квартире": "at the apartment",
 "Со сколькими чемоданами приехала Валентина?": "How many suitcases did Valentina arrive with?",
 "Каким путём Валентина подняла чемоданы наверх?": "How did Valentina get the suitcases upstairs?",
@@ -18218,7 +18237,276 @@ const I18N_EN = {
 "Час живой практики вне приложения по теме блока: ": "One hour of real practice outside the app on the block topic: ",
 "Главное — целый час испанского: говорить, слушать, писать. Отметьте, когда закончите: без этого следующий блок не откроется.": "What matters is a full hour of Spanish: speaking, listening, writing. Mark it when you finish: the next block won't open without it.",
 "Практика отмечена: ": "Practice marked: ",
-"✓ Я сделал 1 час практики": "✓ I did 1 hour of practice"
+"✓ Я сделал 1 час практики": "✓ I did 1 hour of practice",
+"Испания (Барселона), медленная речь": "Spain (Barcelona), slow speech",
+"квартира (в Испании)": "apartment (in Spain)",
+"накрыть на стол": "to set the table",
+"обычно (что-то делать)": "to usually (do something)",
+"сладкое / солёное": "sweet / savory",
+"сладкая булочка с Майорки": "sweet pastry from Mallorca",
+"без сахара, без молока": "no sugar, no milk",
+"френч-пресс": "the French press",
+"сломалась": "it broke",
+"яичница": "fried egg",
+"болтунья / варёные / пашот": "scrambled / boiled / poached",
+"желток": "yolk",
+"овсянка": "oats",
+"кипяток": "boiling water",
+"кто ждёт, тот теряет терпение (поговорка)": "whoever waits despairs (saying)",
+"Сначала они завтракают, а потом снимают в Барселоне.": "First they have breakfast and then they film in Barcelona.",
+"Они завтракают в ресторане.": "They have breakfast in a restaurant.",
+"Один человек не может начать день без кофе.": "One person cannot start the day without coffee.",
+"В его кофе есть сахар и молоко.": "His coffee has sugar and milk.",
+"Энсаймада — типичная выпечка Мексики.": "Ensaimada is typical of Mexico.",
+"Аида завтракает овсянкой с йогуртом и яблоком.": "Aida has oats with yogurt and an apple for breakfast.",
+"Где они завтракают?": "Where do they have breakfast?",
+"в квартире Хуанхо": "at Juanjo's apartment",
+"Кто ещё приходит завтракать?": "Who else comes for breakfast?",
+"Гарри": "Harry",
+"папа Хуанхо": "Juanjo's dad",
+"Что сломалось?": "What broke?",
+"кофеварка": "the coffee maker",
+"чашка": "the cup",
+"Какие яйца ему (ей) нравятся больше всего?": "Which eggs does she like best?",
+"пашот": "poached",
+"жареные": "fried",
+"болтунья": "scrambled",
+"Что предпочитает пить одна из девушек в конце?": "What does one of the women prefer to drink at the end?",
+"Откуда родом энсаймада?": "Where is ensaimada typical of?",
+"Из чего молоко в кофе с молоком?": "What is the milk in the coffee with milk made of?",
+"Какой фрукт Аида ест с овсянкой?": "What fruit does Aida eat with her oats?",
+"Что сначала кладут в чашку, чтобы сделать чай?": "What do they put in the cup first to make tea?",
+"Закончите поговорку: «Кто ждёт…»": "Finish the saying: \"El que espera…\"",
+"Мексика, медленная речь": "Mexico, slow speech",
+"хочу спать": "I'm sleepy",
+"будильник": "alarm",
+"выключать": "to turn off",
+"плеснуть водой в лицо": "to splash water on your face",
+"потягиваться": "to stretch",
+"медитировать": "to meditate",
+"электронные письма": "emails",
+"чистить зубы": "to brush your teeth",
+"зубная щётка": "toothbrush",
+"принимать душ / мыться": "to shower / bathe",
+"причёсываться": "to comb your hair",
+"солнцезащитный крем": "sunscreen",
+"краситься": "to put on makeup",
+"заряжать": "to charge",
+"туфли, обувь": "shoes",
+"Пау ставит будильник на семь.": "Pau sets the alarm for seven.",
+"Пау всегда просыпается поздно.": "Pau always wakes up late.",
+"Пау медитирует час.": "Pau meditates for an hour.",
+"Пау пьёт кофе очень быстро.": "Pau drinks her coffee very fast.",
+"Пау чистит зубы, а потом принимает душ.": "Pau brushes her teeth and then showers.",
+"Пау выходит из дома без обуви.": "Pau leaves the house without shoes.",
+"Во сколько Пау ложится спать?": "What time does Pau go to bed?",
+"в десять вечера": "at ten at night",
+"в одиннадцать вечера": "at eleven at night",
+"в семь утра": "at seven in the morning",
+"Что Пау делает перед медитацией?": "What does Pau do before meditating?",
+"плещет водой в лицо": "splashes water on her face",
+"пьёт кофе": "drinks a coffee",
+"принимает душ": "showers",
+"Что Пау смотрит после кофе?": "What does Pau check after her coffee?",
+"свой календарь и сообщения": "her calendar and messages",
+"газету": "the newspaper",
+"Что Пау наносит на лицо?": "What does Pau put on her face?",
+"зубную пасту": "toothpaste",
+"горячую воду": "hot water",
+"Что Пау берёт с собой, когда выходит?": "What does Pau take when she goes out?",
+"компьютер и ключи": "her computer and keys",
+"книгу и кофе": "a book and a coffee",
+"велосипед": "her bike",
+"Сколько часов медитирует Пау?": "How many hours does Pau meditate?",
+"Что Пау готовит себе после медитации?": "What does Pau make herself after meditating?",
+"Что Пау кладёт на щётку?": "What does Pau put on the toothbrush?",
+"Для чего кабель?": "What is the cable for?",
+"Что Пау надевает (наносит) перед обувью?": "What does Pau put on before her shoes?",
+"Испания (Барселона): здесь говорят vosotros (queréis), «me cogieron» = «me contrataron»": "Spain (Barcelona): they use vosotros (queréis); «me cogieron» = «me contrataron»",
+"получить, добыть (ты получил)": "to get (you got)",
+"в настоящее время": "currently",
+"контора, бюро": "office",
+"на пенсии / выйти на пенсию": "retired / to retire",
+"пешеходная": "pedestrian",
+"загрязнять": "to pollute",
+"операционная": "operating room",
+"принимать оплату": "to charge / take payment",
+"умеющий сопереживать": "empathetic",
+"биржа труда": "employment office",
+"меня наняли / меня взяли (Испания)": "they hired me / took me on (Spain)",
+"учёба в университете": "university degree",
+"конкурсные экзамены на госслужбу": "civil service exams",
+"узнать (я узнал)": "to find out (I found out)",
+"резюме": "CV, résumé",
+"Интервью проходят в Барселоне.": "The interviews are in Barcelona.",
+"Одна женщина работает в своём магазине уже четырнадцать лет.": "A woman has been working in her shop for fourteen years.",
+"Один мужчина сорок лет проработал учителем.": "A man worked as a teacher for forty years.",
+"Один парень нашёл работу через четыре дня после того, как сходил на биржу труда.": "A young man found a job four days after going to the employment office.",
+"Учёба на врача длилась всего год.": "The medical degree lasted only one year.",
+"Все говорят, что найти работу очень легко.": "Everyone says it is very easy to find a job.",
+"Почему по выходным закрывают улицу?": "Why do they close the street on weekends?",
+"для пешеходов": "for pedestrians",
+"для машин": "for cars",
+"для матча": "for a game",
+"Что делает анестезиолог в операционной?": "What does the anesthesiologist do in the operating room?",
+"готовит пациентов": "prepares the patients",
+"продаёт одежду": "sells clothes",
+"перекрывает улицы": "closes streets",
+"Сколько лет длилась учёба на врача?": "How many years did the medical degree take?",
+"Как один человек узнал о своей работе?": "How did one person find out about the job?",
+"через друга": "through a friend",
+"по телевизору": "on TV",
+"из газеты": "in the newspaper",
+"Кем хочет стать молодой парень в будущем?": "What does the young man want to be in the future?",
+"психологом": "a psychologist",
+"архитектором": "an architect",
+"В каком городе брали интервью?": "In which city did they do the interviews?",
+"Сколько часов в день врач учился к экзаменам?": "How many hours a day did the doctor study for the exams?",
+"Что такое INEM?": "What is the INEM?",
+"Первый совет: искать то, что тебе…": "First piece of advice: look for something that you…",
+"Где хотел бы работать один парень?": "Where would one young man like to work?",
+"Мексика и Колумбия": "Mexico and Colombia",
+"лотерея": "lottery",
+"билет": "ticket",
+"азартная игра": "game of chance",
+"выиграть": "to win",
+"удача": "luck",
+"ларёк, киоск": "stand, stall",
+"чемпионат мира": "the World Cup",
+"участок земли": "plot of land",
+"перепродать / выручить вдвое больше": "to resell / to get double",
+"машина (Мекс., разг.)": "car (Mexico, colloquial)",
+"ёлочка": "small (Christmas) tree",
+"приличная сумма": "a considerable amount",
+"пожертвовать": "to donate",
+"фонд": "foundation",
+"бездомные животные": "stray animals",
+"прививать (ценности)": "to instill",
+"Друг ведущей купил лотерейный билет.": "A friend of the host bought a lottery ticket.",
+"Один человек покупает лотерею каждую неделю.": "One person buys lottery tickets every week.",
+"Один мужчина выиграл поездку на чемпионат мира 1994 года.": "A man won a trip to the 1994 World Cup.",
+"На деньги от «chance» семья купила ёлочку для дома.": "With the «chance» money, a family bought a little tree for the house.",
+"Никто не пожертвовал бы деньги животным.": "Nobody would donate money to animals.",
+"У одной пары есть десятилетняя дочь.": "A couple has a ten-year-old daughter.",
+"Сколько раз в год один человек покупает лотерею?": "How many times a year does one person buy lottery tickets?",
+"два-три": "two or three",
+"каждую неделю": "every week",
+"Куда была поездка, которую выиграл мужчина?": "Where was the trip that a man won?",
+"в США": "to the United States",
+"в Колумбию": "to Colombia",
+"в Турцию": "to Turkey",
+"Что купил мужчина на деньги за участок?": "What did a man buy with the money from the land?",
+"билет на самолёт": "a plane ticket",
+"Куда хочет поехать одна женщина?": "Where does one woman want to travel?",
+"в Мачу-Пикчу": "to Machu Picchu",
+"в Куэрнаваку": "to Cuernavaca",
+"Кому один человек пожертвовал бы деньги?": "Who would one person donate money to?",
+"детям, больным раком": "to children with cancer",
+"футбольной команде": "to a soccer team",
+"своему начальнику": "to their boss",
+"Сколько долларов выиграл один человек в лотерею?": "How many dollars did one person win in the lottery?",
+"В каком году он выиграл поездку?": "In which year did he win the trip?",
+"Он продал участок и выручил…": "He sold the land and got…",
+"Что многие сделали бы с деньгами в первую очередь?": "What would many people do first with the money?",
+"Сколько лет дочери этой пары?": "How old is the couple's daughter?",
+"Мексика (Мехико), живая речь с мексиканскими словечками": "Mexico (Mexico City), natural speech with Mexican slang",
+"вспыльчивый, сердитый (Мекс.)": "grumpy, hot-tempered (Mexico)",
+"плакса": "crybaby",
+"страх темноты": "fear of the dark",
+"капризная (Мекс.)": "tantrum-prone (Mexico)",
+"смелая, отчаянная": "daring",
+"озорная / шалость": "naughty / prank",
+"двоюродные братья": "cousins",
+"ругать": "to scold",
+"ящерица": "lizard",
+"леденец на палочке": "lollipop",
+"дверной звонок": "doorbell",
+"прятки": "hide-and-seek",
+"кукла": "doll",
+"мягкая игрушка": "stuffed toy",
+"пожарный": "firefighter",
+"сестринское дело": "nursing",
+"преодолеть страхи": "to overcome fears",
+"улыбчивая, смешливая": "cheerful, giggly",
+"Интервью проходят в Мехико.": "The interviews are in Mexico City.",
+"Один парень боялся темноты.": "A young man was afraid of the dark.",
+"Одна девушка была единственной девочкой среди многих двоюродных братьев.": "A young woman was the only girl among many cousins.",
+"Одна девушка была очень общительной и много гуляла.": "A young woman was very sociable and went out a lot.",
+"Один парень играл в первый Xbox.": "A young man played on the first Xbox.",
+"Все хотели стать космонавтами.": "Everyone wanted to be an astronaut.",
+"Что обожала делать смелая девочка?": "What did the daring girl love to do?",
+"лазить по деревьям": "climb trees",
+"играть в Барби": "play with Barbies",
+"смотреть телевизор": "watch TV",
+"За что его ругали в школе?": "Why did they scold him at school?",
+"потому что он был гиперактивным": "because he was hyperactive",
+"потому что он опаздывал": "because he was late",
+"потому что он не учился": "because he didn't study",
+"Какой была одна из их шалостей?": "What was one of their pranks?",
+"воровать леденцы": "stealing lollipops",
+"бить окна": "breaking windows",
+"разрисовывать стены": "painting walls",
+"Что такое «el avión»?": "What was «el avión»?",
+"игра с цифрами на земле (классики)": "a game with numbers on the ground (hopscotch)",
+"Что изучала девушка, которая хотела стать адвокатом?": "What did the young woman who wanted to be a lawyer study?",
+"право": "law",
+"архитектуру": "architecture",
+"В какой парк её водили родители?": "Which park did her parents take her to?",
+"На чём катались с соседями по улице?": "What did they ride with the neighbors in the street?",
+"С какими куклами много играла одна девушка?": "Which dolls did one young woman play with a lot?",
+"До какого числа нужно было допрыгать в «el avión»?": "Up to which number did they have to get in «el avión»?",
+"Кем хотел стать мальчик, у которого был набор юного химика?": "What did the boy with a chemistry set want to be?",
+"Мексика (Мехико), цены в мексиканских песо": "Mexico (Mexico City), prices in Mexican pesos",
+"купюра": "bill (banknote)",
+"равняется": "is equal to",
+"хватать (тебе хватит)": "to be enough",
+"тако с тушёной начинкой": "stew taco",
+"фасоль": "beans",
+"кукурузная лепёшка": "tortilla",
+"комплексный обед": "set lunch menu",
+"дешёвая столовая": "cheap eatery",
+"мне захотелось": "I felt like having",
+"билет в кино": "movie ticket",
+"банка сливок": "tub of cream",
+"пакетик": "packet, sachet",
+"шлёпанцы": "flip-flops",
+"потребительская корзина": "basic basket of goods",
+"поездка (в одну сторону)": "trip, ride",
+"туда и обратно": "round trip",
+"Сто песо — это почти шесть долларов.": "One hundred pesos is almost six dollars.",
+"Тако с тушёной начинкой стоит двенадцать песо.": "A stew taco costs twelve pesos.",
+"На сто песо можно купить двадцать тако.": "With one hundred pesos you can buy twenty stew tacos.",
+"Комплексный обед стоит от шестидесяти до ста песо.": "A set lunch costs between sixty and one hundred pesos.",
+"Пять лет назад килограмм тортилий стоил двадцать два песо.": "Five years ago a kilo of tortillas cost twenty-two pesos.",
+"Метро в Мехико стоит пять песо.": "The Mexico City metro costs five pesos.",
+"Сколько стоит пачка сигарет?": "How much does a pack of cigarettes cost?",
+"семьдесят пять песо": "seventy-five pesos",
+"двенадцать песо": "twelve pesos",
+"Сколько стоила литровая бутылка воды?": "How much did the one-liter water cost?",
+"двадцать пять песо": "twenty-five pesos",
+"пять песо": "five pesos",
+"шестьдесят песо": "sixty pesos",
+"Сколько килограммов сахара можно купить на сто песо?": "How many kilos of sugar can you buy with one hundred pesos?",
+"Сколько сегодня стоит килограмм тортилий?": "How much does a kilo of tortillas cost today?",
+"двадцать два песо": "twenty-two pesos",
+"одиннадцать песо пятьдесят": "eleven pesos fifty",
+"Сколько стоит метробус?": "How much does the metrobus cost?",
+"шесть песо": "six pesos",
+"Сколько тако можно купить на сто песо?": "How many stew tacos can you buy with one hundred pesos?",
+"Сколько граммов кофе можно купить на сто песо?": "How many grams of coffee can you buy with one hundred pesos?",
+"Сколько пакетиков корма для собак?": "How many packets of dog food?",
+"На сколько поездок на метро хватит?": "How many metro rides is it enough for?",
+"В каком году снимают видео?": "In which year are they filming the video?",
+"Видео": "Video",
+"Видео: ": "Video: ",
+"Видео и слова из видео": "Video and words from the video",
+"Вопросы по-испански. «Перевод» — если нужно проверить, что спрашивают. ▶ 2:15 — открыть видео на нужном месте.": "Questions are in Spanish. \"Translation\" shows what is being asked. ▶ 2:15 opens the video at that moment.",
+"▶ Открыть видео на YouTube": "▶ Open the video on YouTube",
+"Слова из видео": "Words from the video",
+"Итоговое видео уровня. Посмотрите его целиком на YouTube (можно с испанскими субтитрами — кнопка CC), потом пройдите тест: 16 вопросов по-испански, нужно 80%.": "The final video of the level. Watch it all on YouTube (Spanish subtitles via the CC button are fine), then take the test: 16 questions in Spanish, you need 80%.",
+"Пройти тест ещё раз": "Take the test again",
+"Я посмотрел — к тесту →": "I've watched it — go to the test →",
+"Видео пройдено. Следующий уровень открыт.": "Video passed. The next level is open."
 };
 
 // ---- i18n.js ----
@@ -18239,6 +18527,10 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     [t.ex, t.dr, t.st].forEach(a => (a || []).forEach(p => { p[0] = T(p[0]); }));
   });
   REVIEW.forEach(r => { r[3] = T(r[3]); });
+  if (typeof VIDEO !== 'undefined') Object.values(VIDEO).forEach(v => {
+    v.where = T(v.where); v.gl.forEach(g => { g[1] = T(g[1]); });
+    v.tf.forEach(x => { x[1] = T(x[1]); }); v.sa.forEach(x => { x[1] = T(x[1]); }); v.mc.forEach(x => { x[1] = T(x[1]); x[3] = x[3].map(T); });
+  });
   if (typeof READING !== 'undefined') Object.values(READING).forEach(r => {
     r.t = T(r.t); r.p.forEach(p => { p[1] = T(p[1]); });
     for (const k in r.gl) r.gl[k] = T(r.gl[k]);
@@ -18265,7 +18557,11 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   // «1 hour practice» после каждого блока (вне приложения, отмечается вручную): id = 3000 + первый урок блока
   const PRACTICE_SINCE = Date.parse('2026-10-06T18:30:00Z');
   COURSE.filter(c => c.type === 'I' && c.part === 3).forEach(c => { const s = c.id - 9; BY_ID[3000 + s] = { id: 3000 + s, type: 'H', level: c.level, block: c.block, start: s }; });
-  const ORDER = []; COURSE.forEach(c => { ORDER.push(c); if (c.type === 'I' && c.part === 3) { if (BY_ID[1000 + c.id - 9]) ORDER.push(BY_ID[1000 + c.id - 9]); ORDER.push(BY_ID[3000 + c.id - 9]); } });
+  // видео в конце уровня (после итоговой, часть 10): ссылка на YouTube + тест; id = 4000 + номер уровня
+  const VIDEO_SINCE = Date.parse('2026-10-06T19:30:00Z');
+  if (typeof VIDEO !== 'undefined') LEVELS.forEach((lv, li) => { if (VIDEO[li]) BY_ID[4000 + li] = { id: 4000 + li, type: 'Y', level: li, block: 4, start: li * 50 + 41, video: VIDEO[li] }; });
+  const ORDER = []; COURSE.forEach(c => { ORDER.push(c); if (c.type === 'I' && c.part === 3) { if (BY_ID[1000 + c.id - 9]) ORDER.push(BY_ID[1000 + c.id - 9]); ORDER.push(BY_ID[3000 + c.id - 9]); }
+    if (c.type === 'F' && c.part === 10 && BY_ID[4000 + c.level]) ORDER.push(BY_ID[4000 + c.level]); });
   const $ = s => document.querySelector(s);
   const el = (tag, attrs, ...kids) => {
     const n = document.createElement(tag);
@@ -18894,11 +19190,17 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     return (!r || passedId(r.id) || before(READING_SINCE)) && (!h || passedId(h.id) || before(PRACTICE_SINCE));
   }
   const isUnlocked = id => state.free || (id >= 1000 ? passedId(BY_ID[id].start + 9)
-    : id === 1 || (BY_ID[id] && LEVELS[BY_ID[id].level].numbers && (id - 1) % 50 === 0) || (passedId(id - 1) && readingGate(id))); // «Числа» открыты сразу
+    : id === 1 || (BY_ID[id] && LEVELS[BY_ID[id].level].numbers && (id - 1) % 50 === 0) || (passedId(id - 1) && readingGate(id) && videoGate(id))); // «Числа» открыты сразу
+  function videoGate(id) { // первый урок уровня ждёт видео предыдущего уровня
+    if ((id - 1) % 50 !== 0 || id === 1) return true;
+    const v = BY_ID[4000 + (id - 1) / 50 - 1], end = state.done[id - 1];
+    return !v || passedId(v.id) || !!(end && end.at && end.at < VIDEO_SINCE);
+  }
   function status(id) { const d = state.done[id]; return d ? (d.passed ? 'passed' : 'tried') : (isUnlocked(id) ? 'open' : 'locked'); }
   function lessonTitle(item) {
     if (item.type === 'R') return T('Чтение: ') + item.reading.t;
     if (item.type === 'H') return '1 hour practice';
+    if (item.type === 'Y') return T('Видео: ') + item.video.t;
     if (item.type === 'T') return THEORY[item.id] ? THEORY[item.id].t : T('Теория (готовится)');
     if (item.type === 'K') return T('Контрольная: ') + (THEORY[item.theory] ? THEORY[item.theory].t : '');
     const lv = LEVELS[item.level];
@@ -18906,7 +19208,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     if (item.type === 'I') return T('Итоговая по блоку, часть ') + item.part + ': ' + lv.blocks[item.block].t;
     return T('Итоговая по уровню ') + lv.code + T(', часть ') + item.part;
   }
-  const ready = item => item.type === 'R' || item.type === 'H' || (item.type === 'T' || item.type === 'K' ? !!THEORY[item.type === 'T' ? item.id : item.theory]
+  const ready = item => item.type === 'R' || item.type === 'H' || item.type === 'Y' || (item.type === 'T' || item.type === 'K' ? !!THEORY[item.type === 'T' ? item.id : item.theory]
     : levelTheory(item.level).length > 0 && (item.type === 'F' || blockTheory(item.level, item.block).length > 0));
 
   function renderNav() {
@@ -18927,7 +19229,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     if (nextId) {
       const it = nextId;
       main.append(el('section', { class: 'next' },
-        el('div', { class: 'eyebrow' }, (it.type === 'R' || it.type === 'H' ? '' : T('Урок ') + it.id + ' · ') + TYPE_NAME[it.type] + ' · ' + LEVELS[it.level].code),
+        el('div', { class: 'eyebrow' }, (['R', 'H', 'Y'].includes(it.type) ? '' : T('Урок ') + it.id + ' · ') + TYPE_NAME[it.type] + ' · ' + LEVELS[it.level].code),
         el('h2', null, lessonTitle(it)),
         el('button', { class: 'primary', type: 'button', onclick: () => openLesson(it.id), disabled: !ready(it) }, ready(it) ? T('Продолжить') : T('Урок ещё готовится'))));
     }
@@ -18944,9 +19246,9 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
             class: 'lesson t' + it.type + ' ' + st, type: 'button', disabled: st === 'locked' || !ready(it),
             onclick: () => openLesson(it.id),
           },
-            el('span', { class: 'num' }, it.type === 'R' ? '📖' : it.type === 'H' ? '⏱' : it.id),
+            el('span', { class: 'num' }, it.type === 'R' ? '📖' : it.type === 'H' ? '⏱' : it.type === 'Y' ? '🎬' : it.id),
             el('span', { class: 'kind' }, TYPE_NAME[it.type]),
-            el('span', { class: 'name' }, it.type === 'R' ? it.reading.t : it.type === 'H' ? '1 hour practice' : it.type === 'T' || it.type === 'K' ? lessonTitle(it).replace(T('Контрольная: '), '') : (it.type === 'F' ? T('часть ') + it.part : (it.type === 'I' ? T('часть ') + it.part : ''))),
+            el('span', { class: 'name' }, it.type === 'R' ? it.reading.t : it.type === 'H' ? '1 hour practice' : it.type === 'Y' ? it.video.t : it.type === 'T' || it.type === 'K' ? lessonTitle(it).replace(T('Контрольная: '), '') : (it.type === 'F' ? T('часть ') + it.part : (it.type === 'I' ? T('часть ') + it.part : ''))),
             el('span', { class: 'score' }, d && d.best != null ? Math.round(d.best * 100) + '%' : (st === 'passed' ? '✓' : ''))));
         }))));
     });
@@ -18963,7 +19265,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   function header(item) {
     return el('div', { class: 'lhead lv' + item.level },
       el('button', { class: 'ghost back', type: 'button', onclick: () => { stopSpeech(); renderHome(); } }, T('← Карта курса')),
-      el('div', { class: 'eyebrow' }, (item.type === 'R' || item.type === 'H' ? '' : T('Урок ') + item.id + ' · ') + TYPE_NAME[item.type] + ' · ' + LEVELS[item.level].code + (item.block < 4 ? T(' · блок ') + (item.block + 1) : '')),
+      el('div', { class: 'eyebrow' }, (['R', 'H', 'Y'].includes(item.type) ? '' : T('Урок ') + item.id + ' · ') + TYPE_NAME[item.type] + ' · ' + LEVELS[item.level].code + (item.block < 4 ? T(' · блок ') + (item.block + 1) : '')),
       el('h2', null, lessonTitle(item)));
   }
 
@@ -18974,6 +19276,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     if (item.type === 'O') return renderSummary(item);
     if (item.type === 'R') return renderReading(item);
     if (item.type === 'H') return renderPractice(item);
+    if (item.type === 'Y') return renderVideo(item);
     return runTest(item);
   }
 
@@ -19072,6 +19375,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     if (item.type === 'W') tasks = weakTasks();
     else if (item.type === 'V') tasks = coverageTasks(reachLesson(), 15, 10, rng(Date.now() % 2147483647), new Set());
     else if (item.type === 'R') tasks = readingTasks(item, attempt);
+    else if (item.type === 'Y') tasks = videoTasks(item, attempt);
     else {
       const base = buildTasks(item, attempt);
       const ex = new Set(base.filter(t => t.kind === 'form').map(t => t.verb + '|' + t.tense + '|' + t.person));
@@ -19088,6 +19392,8 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     const firstTry = {}; let pos = 0, retries = 0; const mistakes = [];
     const bar = el('div', { class: 'progress' }, el('span'));
     const box = el('section', { class: 'card task' });
+    if (item.type === 'Y') main.append(el('details', { class: 'rtext' }, el('summary', null, T('Видео и слова из видео')), videoBox(item)),
+      el('p', { class: 'hint' }, T('Вопросы по-испански. «Перевод» — если нужно проверить, что спрашивают. ▶ 2:15 — открыть видео на нужном месте.')));
     if (item.type === 'R') main.append(el('details', { class: 'rtext' }, el('summary', null, T('Текст (открыть, если нужно перечитать)')), readingText(item.reading)),
       el('p', { class: 'hint' }, T('Вопросы по-испански. «Перевод» — если нужно проверить, что спрашивают.')));
     if (LANG === 'en') main.append(el('p', { class: 'hint' }, 'you = tú · you (formal) = usted · you all = ustedes · Spanish subject pronouns are optional.'));
@@ -19106,7 +19412,8 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
         : RQ.has(t.kind) ? (() => {
           const tr = el('div', { class: 'qtr', hidden: true }, T(t.qru), t.kind === 'mc' ? el('div', { class: 'qtropts' }, t.opts.map(o => o[0] + ' — ' + T(o[1])).join(' · ')) : null);
           return el('div', { class: 'prompt rq' }, el('small', null, t.kind === 'tf' ? '¿Verdadero o falso?' : t.kind === 'mc' ? T('Выберите ответ') : T('Ответьте коротко, 1–3 слова')),
-            el('div', { class: 'q' }, t.q), el('button', { class: 'ghost small', type: 'button', onclick: () => { tr.hidden = !tr.hidden; } }, T('Перевод')), tr);
+            el('div', { class: 'q' }, t.q), el('div', { class: 'rtools' }, el('button', { class: 'ghost small', type: 'button', onclick: () => { tr.hidden = !tr.hidden; } }, T('Перевод')),
+              t.vid ? el('a', { class: 'ghost small tlink', href: ytUrl(t.vid, t.time), target: '_blank', rel: 'noopener' }, '▶ ' + mmss(t.time)) : null), tr);
         })()
         : el('div', { class: 'prompt' }, t.ru);
       if (!RQ.has(t.kind)) prefetch(t.speak || first(t.es));
@@ -19167,7 +19474,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
       box.append(el('div', { class: 'final ' + (passed ? 'pass' : 'fail') },
         el('div', { class: 'big' }, Math.round(score * 100) + '%'),
         el('p', null, item.type === 'V' ? T('Освоено форм: ') + verbStats().done + T(' из ') + verbStats().open + T(' доступных.') : W ? T('Осталось в тренировке ошибок: ') + weakList().length + T('. Задание уходит после 4 верных ответов подряд, поэтому возвращайтесь к тренировке в разные дни.')
-          : passed ? (item.type === 'R' ? T('Чтение пройдено. Следующий блок открыт.') : T('Контрольная пройдена. Следующий урок открыт.')) : T('Нужно 80% с первой попытки. Повторите теорию, послушайте её фоном и пройдите контрольную ещё раз: фразы будут в другом порядке.')),
+          : passed ? (item.type === 'Y' ? T('Видео пройдено. Следующий уровень открыт.') : item.type === 'R' ? T('Чтение пройдено. Следующий блок открыт.') : T('Контрольная пройдена. Следующий урок открыт.')) : T('Нужно 80% с первой попытки. Повторите теорию, послушайте её фоном и пройдите контрольную ещё раз: фразы будут в другом порядке.')),
         mistakes.length ? el('details', null, el('summary', null, T('Ошибки (') + mistakes.length + ')'), el('ul', { class: 'mist' }, mistakes.map(m => el('li', null, el('span', null, T(m.q)), el('b', null, m.a), m.g ? el('s', null, m.g) : null)))) : null,
         W ? el('div', { class: 'row' },
           item.type === 'V' || weakList().length ? el('button', { class: 'primary', type: 'button', onclick: () => runTest(item) }, T('Ещё тренировка')) : null,
@@ -19187,6 +19494,8 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   // порядок в конце блока: итоговая часть 3 → чтение → 1 hour practice → следующий блок
   // (то, что уже пройдено, пропускаем)
   function nextAfter(item) {
+    if (item.type === 'Y') return item.level * 50 + 51;
+    if (item.type === 'F' && item.part === 10 && BY_ID[4000 + item.level] && !passedId(4000 + item.level)) return 4000 + item.level;
     if (!['H', 'R'].includes(item.type) && !(item.type === 'I' && item.part === 3)) return item.id + 1;
     const s = item.type === 'I' ? item.id - 9 : item.start;
     const r = BY_ID[1000 + s], h = BY_ID[3000 + s];
@@ -19201,6 +19510,31 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     'Посмотрите серию, YouTube или подкаст на испанском (лучше чилийский) и выпишите 10 новых фраз.',
     'Напишите 10–15 предложений о себе по теме блока и прочитайте их вслух.',
   ];
+  const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  const ytUrl = (id, s) => 'https://www.youtube.com/watch?v=' + id + (s ? '&t=' + Math.max(0, s - 3) + 's' : '');
+  function videoTasks(item, attempt) {
+    const v = item.video, rr = rng(item.id * 13 + attempt * 7 + 5), vid = v.id;
+    return [...shuffle(v.tf.map(x => ({ kind: 'tf', q: x[0], qru: x[1], es: x[2] ? 'v' : 'f', time: x[3], vid, from: item.id })), rr),
+      ...v.mc.map(x => ({ kind: 'mc', q: x[0], qru: x[1], opts: shuffle(x[2].map((o, i) => [o, x[3][i]]), rr), es: x[2][0], time: x[4], vid, from: item.id })),
+      ...v.sa.map(x => ({ kind: 'sa', q: x[0], qru: x[1], es: x[2], time: x[3], vid, from: item.id }))];
+  }
+  function videoBox(item) {
+    const v = item.video;
+    return el('div', { class: 'vbox' },
+      el('a', { class: 'primary vopen', href: ytUrl(v.id), target: '_blank', rel: 'noopener' }, T('▶ Открыть видео на YouTube') + ' · ' + v.len),
+      el('p', { class: 'hint' }, T(v.where)),
+      el('h3', null, T('Слова из видео')),
+      el('ul', { class: 'vgl' }, v.gl.map(g => el('li', null, el('a', { href: ytUrl(v.id, g[2]), target: '_blank', rel: 'noopener' }, mmss(g[2])), ' ', el('b', null, g[0]), ' — ' + g[1]))));
+  }
+  function renderVideo(item) {
+    view = 'theory'; window.scrollTo(0, 0);
+    const main = $('#main'); main.innerHTML = ''; const v = item.video, d = state.done[item.id];
+    main.append(header(item),
+      el('section', { class: 'card practice' },
+        el('p', null, T('Итоговое видео уровня. Посмотрите его целиком на YouTube (можно с испанскими субтитрами — кнопка CC), потом пройдите тест: 16 вопросов по-испански, нужно 80%.')),
+        videoBox(item)),
+      el('div', { class: 'row' }, el('button', { class: 'primary', type: 'button', onclick: () => runTest(item) }, d && d.passed ? T('Пройти тест ещё раз') : T('Я посмотрел — к тесту →'))));
+  }
   function renderPractice(item) {
     view = 'theory'; window.scrollTo(0, 0);
     const main = $('#main'); main.innerHTML = ''; const bl = LEVELS[item.level].blocks[item.block], d = state.done[item.id];
