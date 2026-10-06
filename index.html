@@ -17774,6 +17774,8 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     const alts = expected.split('|').map(x => x.trim());
     for (const e of alts) if (norm(e) === a) return { res: 'ok', match: e };
     for (const e of alts) if (strip(norm(e)) === strip(a)) return { res: 'accent', match: e };
+    // «El tiene…» без ударения: это местоимение él, а не артикль — засчитываем с подсказкой про ударение
+    if (/^\s*el\s/i.test(answer)) { const a2 = norm(answer.replace(/^\s*el\s/i, 'él ')); for (const e of alts) if (strip(norm(e)) === strip(a2)) return { res: 'accent', match: e }; }
     return { res: 'bad', match: alts[0] };
   }
   const first = s => s.split('|')[0].trim();
