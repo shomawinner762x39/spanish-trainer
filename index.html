@@ -59,6 +59,9 @@ h3 { font: 600 17px/1.3 var(--body); margin: 0 0 10px; }
 .lesson.tO, .lesson.tI, .lesson.tF { background: color-mix(in srgb, var(--surface) 88%, var(--lv0)); }
 .lesson.tR { border-left: 4px solid #e0b84a; background: color-mix(in srgb, var(--surface) 85%, #e0b84a); }
 .lesson.tR .num { font-size: 1.3em; }
+.lesson.tH { border-left: 4px solid #8a7be0; background: color-mix(in srgb, var(--surface) 85%, #8a7be0); }
+.lesson.tH .num { font-size: 1.3em; }
+.practice ul { margin: 8px 0 12px; padding-left: 20px; line-height: 1.6; }
 .reading { padding: 18px 20px; }
 .rpara { margin: 0 0 18px; }
 .rpara .res { font-size: 1.15rem; line-height: 1.7; margin: 0 0 6px; }
@@ -673,7 +676,7 @@ const LEVELS = [
 ];
 
 const BLOCK_PATTERN = ['T', 'K', 'T', 'K', 'T', 'K', 'O', 'I', 'I', 'I'];
-const TYPE_NAME = { T: 'Теория', K: 'Контрольная', O: 'Обобщение', I: 'Итоговая по блоку', F: 'Итоговая по уровню', R: 'Чтение' };
+const TYPE_NAME = { T: 'Теория', K: 'Контрольная', O: 'Обобщение', I: 'Итоговая по блоку', F: 'Итоговая по уровню', R: 'Чтение', H: 'Практика' };
 
 // Полный список 250 уроков
 function buildCourse() {
@@ -18205,7 +18208,17 @@ const I18N_EN = {
 "Когда день рождения Камилы?": "When is Camila's birthday?",
 "Какая скидка?": "How big is the discount?",
 "Какой расход у машины Пабло?": "What is the fuel consumption of Pablo's car?",
-"Какое повышение у водителей?": "How big is the raise for the drivers?"
+"Какое повышение у водителей?": "How big is the raise for the drivers?",
+"Практика": "Practice",
+"Разговор с носителем или репетитором (iTalki, Preply, коллеги, таксист) — специально используйте формы этого блока.": "Talk with a native speaker or a tutor (iTalki, Preply, coworkers, a taxi driver) and use the forms from this block on purpose.",
+"Говорите вслух сами с собой: опишите свой день, работу, планы — теми временами, что уже прошли.": "Talk out loud to yourself: describe your day, your work, your plans using the tenses you have already learned.",
+"Перескажите вслух чтение о Пабло из этого блока своими словами.": "Retell this block's Pablo reading out loud in your own words.",
+"Посмотрите серию, YouTube или подкаст на испанском (лучше чилийский) и выпишите 10 новых фраз.": "Watch an episode, a YouTube video or a podcast in Spanish (Chilean if possible) and write down 10 new phrases.",
+"Напишите 10–15 предложений о себе по теме блока и прочитайте их вслух.": "Write 10–15 sentences about yourself on the block's topic and read them out loud.",
+"Час живой практики вне приложения по теме блока: ": "One hour of real practice outside the app on the block topic: ",
+"Главное — целый час испанского: говорить, слушать, писать. Отметьте, когда закончите: без этого следующий блок не откроется.": "What matters is a full hour of Spanish: speaking, listening, writing. Mark it when you finish: the next block won't open without it.",
+"Практика отмечена: ": "Practice marked: ",
+"✓ Я сделал 1 час практики": "✓ I did 1 hour of practice"
 };
 
 // ---- i18n.js ----
@@ -18249,7 +18262,10 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   // (кроме блоков, итоговую которых сдали до появления чтения).
   const READING_SINCE = Date.parse('2026-10-05T17:00:00Z');
   if (typeof READING !== 'undefined') Object.values(READING).forEach(r => { const b = BY_ID[r.start]; if (b) BY_ID[1000 + r.start] = { id: 1000 + r.start, type: 'R', level: b.level, block: b.block, start: r.start, reading: r }; });
-  const ORDER = []; COURSE.forEach(c => { ORDER.push(c); if (c.type === 'I' && c.part === 3 && BY_ID[1000 + c.id - 9]) ORDER.push(BY_ID[1000 + c.id - 9]); });
+  // «1 hour practice» после каждого блока (вне приложения, отмечается вручную): id = 3000 + первый урок блока
+  const PRACTICE_SINCE = Date.parse('2026-10-06T18:30:00Z');
+  COURSE.filter(c => c.type === 'I' && c.part === 3).forEach(c => { const s = c.id - 9; BY_ID[3000 + s] = { id: 3000 + s, type: 'H', level: c.level, block: c.block, start: s }; });
+  const ORDER = []; COURSE.forEach(c => { ORDER.push(c); if (c.type === 'I' && c.part === 3) { if (BY_ID[1000 + c.id - 9]) ORDER.push(BY_ID[1000 + c.id - 9]); ORDER.push(BY_ID[3000 + c.id - 9]); } });
   const $ = s => document.querySelector(s);
   const el = (tag, attrs, ...kids) => {
     const n = document.createElement(tag);
@@ -18871,16 +18887,18 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   // ---------- навигация ----------
   let view = 'home';
   const passedId = id => !!(state.done[id] && state.done[id].passed);
-  function readingGate(id) { // первый урок блока (и итоговой по уровню) ждёт чтения предыдущего блока
+  function readingGate(id) { // первый урок блока (и итоговой по уровню) ждёт чтения и часа практики предыдущего блока
     if ((id - 1) % 10 !== 0 || (id - 1) % 50 === 0) return true;
-    const r = BY_ID[1000 + id - 10]; if (!r || passedId(r.id)) return true;
-    const end = state.done[id - 1]; return !!(end && end.at && end.at < READING_SINCE);
+    const end = state.done[id - 1], before = since => !!(end && end.at && end.at < since); // блоки, сданные до появления шага, не закрываем
+    const r = BY_ID[1000 + id - 10], h = BY_ID[3000 + id - 10];
+    return (!r || passedId(r.id) || before(READING_SINCE)) && (!h || passedId(h.id) || before(PRACTICE_SINCE));
   }
   const isUnlocked = id => state.free || (id >= 1000 ? passedId(BY_ID[id].start + 9)
     : id === 1 || (BY_ID[id] && LEVELS[BY_ID[id].level].numbers && (id - 1) % 50 === 0) || (passedId(id - 1) && readingGate(id))); // «Числа» открыты сразу
   function status(id) { const d = state.done[id]; return d ? (d.passed ? 'passed' : 'tried') : (isUnlocked(id) ? 'open' : 'locked'); }
   function lessonTitle(item) {
     if (item.type === 'R') return T('Чтение: ') + item.reading.t;
+    if (item.type === 'H') return '1 hour practice';
     if (item.type === 'T') return THEORY[item.id] ? THEORY[item.id].t : T('Теория (готовится)');
     if (item.type === 'K') return T('Контрольная: ') + (THEORY[item.theory] ? THEORY[item.theory].t : '');
     const lv = LEVELS[item.level];
@@ -18888,7 +18906,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     if (item.type === 'I') return T('Итоговая по блоку, часть ') + item.part + ': ' + lv.blocks[item.block].t;
     return T('Итоговая по уровню ') + lv.code + T(', часть ') + item.part;
   }
-  const ready = item => item.type === 'R' || (item.type === 'T' || item.type === 'K' ? !!THEORY[item.type === 'T' ? item.id : item.theory]
+  const ready = item => item.type === 'R' || item.type === 'H' || (item.type === 'T' || item.type === 'K' ? !!THEORY[item.type === 'T' ? item.id : item.theory]
     : levelTheory(item.level).length > 0 && (item.type === 'F' || blockTheory(item.level, item.block).length > 0));
 
   function renderNav() {
@@ -18905,11 +18923,11 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   function renderHome() {
     view = 'home'; window.scrollTo(0, 0);
     const main = $('#main'); main.innerHTML = '';
-    const nextId = ORDER.find(c => !(state.done[c.id] && state.done[c.id].passed) && isUnlocked(c.id) && !(c.type === 'R' && passedId(c.start + 10)));
+    const nextId = ORDER.find(c => !(state.done[c.id] && state.done[c.id].passed) && isUnlocked(c.id) && !((c.type === 'R' || c.type === 'H') && passedId(c.start + 10)));
     if (nextId) {
       const it = nextId;
       main.append(el('section', { class: 'next' },
-        el('div', { class: 'eyebrow' }, (it.type === 'R' ? '' : T('Урок ') + it.id + ' · ') + TYPE_NAME[it.type] + ' · ' + LEVELS[it.level].code),
+        el('div', { class: 'eyebrow' }, (it.type === 'R' || it.type === 'H' ? '' : T('Урок ') + it.id + ' · ') + TYPE_NAME[it.type] + ' · ' + LEVELS[it.level].code),
         el('h2', null, lessonTitle(it)),
         el('button', { class: 'primary', type: 'button', onclick: () => openLesson(it.id), disabled: !ready(it) }, ready(it) ? T('Продолжить') : T('Урок ещё готовится'))));
     }
@@ -18926,9 +18944,9 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
             class: 'lesson t' + it.type + ' ' + st, type: 'button', disabled: st === 'locked' || !ready(it),
             onclick: () => openLesson(it.id),
           },
-            el('span', { class: 'num' }, it.type === 'R' ? '📖' : it.id),
+            el('span', { class: 'num' }, it.type === 'R' ? '📖' : it.type === 'H' ? '⏱' : it.id),
             el('span', { class: 'kind' }, TYPE_NAME[it.type]),
-            el('span', { class: 'name' }, it.type === 'R' ? it.reading.t : it.type === 'T' || it.type === 'K' ? lessonTitle(it).replace(T('Контрольная: '), '') : (it.type === 'F' ? T('часть ') + it.part : (it.type === 'I' ? T('часть ') + it.part : ''))),
+            el('span', { class: 'name' }, it.type === 'R' ? it.reading.t : it.type === 'H' ? '1 hour practice' : it.type === 'T' || it.type === 'K' ? lessonTitle(it).replace(T('Контрольная: '), '') : (it.type === 'F' ? T('часть ') + it.part : (it.type === 'I' ? T('часть ') + it.part : ''))),
             el('span', { class: 'score' }, d && d.best != null ? Math.round(d.best * 100) + '%' : (st === 'passed' ? '✓' : ''))));
         }))));
     });
@@ -18945,7 +18963,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   function header(item) {
     return el('div', { class: 'lhead lv' + item.level },
       el('button', { class: 'ghost back', type: 'button', onclick: () => { stopSpeech(); renderHome(); } }, T('← Карта курса')),
-      el('div', { class: 'eyebrow' }, (item.type === 'R' ? '' : T('Урок ') + item.id + ' · ') + TYPE_NAME[item.type] + ' · ' + LEVELS[item.level].code + (item.block < 4 ? T(' · блок ') + (item.block + 1) : '')),
+      el('div', { class: 'eyebrow' }, (item.type === 'R' || item.type === 'H' ? '' : T('Урок ') + item.id + ' · ') + TYPE_NAME[item.type] + ' · ' + LEVELS[item.level].code + (item.block < 4 ? T(' · блок ') + (item.block + 1) : '')),
       el('h2', null, lessonTitle(item)));
   }
 
@@ -18955,6 +18973,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     if (item.type === 'T') return renderTheory(item);
     if (item.type === 'O') return renderSummary(item);
     if (item.type === 'R') return renderReading(item);
+    if (item.type === 'H') return renderPractice(item);
     return runTest(item);
   }
 
@@ -19165,7 +19184,37 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   const tfLabel = v => v === 'v' ? 'Verdadero' : v === 'f' ? 'Falso' : '—';
   const RQ = new Set(['tf', 'mc', 'sa']); // вопросы к тексту: не идут в «Мои ошибки» и тренировку форм
   // после итоговой по блоку — чтение блока, после чтения — первый урок следующего блока
-  const nextAfter = item => item.type === 'R' ? item.start + 10 : (item.type === 'I' && item.part === 3 && BY_ID[1000 + item.id - 9] ? 1000 + item.id - 9 : item.id + 1);
+  // порядок в конце блока: итоговая часть 3 → чтение → 1 hour practice → следующий блок
+  // (то, что уже пройдено, пропускаем)
+  function nextAfter(item) {
+    if (!['H', 'R'].includes(item.type) && !(item.type === 'I' && item.part === 3)) return item.id + 1;
+    const s = item.type === 'I' ? item.id - 9 : item.start;
+    const r = BY_ID[1000 + s], h = BY_ID[3000 + s];
+    if (r && r.id !== item.id && !passedId(r.id)) return r.id;
+    if (h && h.id !== item.id && !passedId(h.id)) return h.id;
+    return s + 10;
+  }
+  const PRACTICE_IDEAS = [
+    'Разговор с носителем или репетитором (iTalki, Preply, коллеги, таксист) — специально используйте формы этого блока.',
+    'Говорите вслух сами с собой: опишите свой день, работу, планы — теми временами, что уже прошли.',
+    'Перескажите вслух чтение о Пабло из этого блока своими словами.',
+    'Посмотрите серию, YouTube или подкаст на испанском (лучше чилийский) и выпишите 10 новых фраз.',
+    'Напишите 10–15 предложений о себе по теме блока и прочитайте их вслух.',
+  ];
+  function renderPractice(item) {
+    view = 'theory'; window.scrollTo(0, 0);
+    const main = $('#main'); main.innerHTML = ''; const bl = LEVELS[item.level].blocks[item.block], d = state.done[item.id];
+    main.append(header(item),
+      el('section', { class: 'card practice' },
+        el('p', null, T('Час живой практики вне приложения по теме блока: ') + bl.t + '.'),
+        el('ul', null, PRACTICE_IDEAS.map(x => el('li', null, T(x)))),
+        el('p', { class: 'hint' }, T('Главное — целый час испанского: говорить, слушать, писать. Отметьте, когда закончите: без этого следующий блок не откроется.'))),
+      d && d.passed
+        ? el('div', { class: 'final pass' }, el('p', null, T('Практика отмечена: ') + new Date(d.at).toLocaleDateString(LOCALE) + '.'),
+          el('div', { class: 'row' }, BY_ID[nextAfter(item)] ? el('button', { class: 'primary', type: 'button', onclick: () => openLesson(nextAfter(item)) }, T('Следующий урок →')) : null,
+            el('button', { class: 'ghost', type: 'button', onclick: renderHome }, T('Карта курса'))))
+        : el('div', { class: 'row' }, el('button', { class: 'primary', type: 'button', onclick: () => { markDone(item.id, 1, true); renderPractice(item); } }, T('✓ Я сделал 1 час практики'))));
+  }
   function readingTasks(item, attempt) {
     const r = item.reading, rr = rng(item.id * 17 + attempt * 5 + 1);
     // вопросы по-испански, перевод — по кнопке; ответы: кнопка, выбор варианта или 1–3 слова
