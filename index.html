@@ -1,5 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Испанский">
-<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/"; const BUILD = "20261007134602";
+<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/"; const BUILD = "20261007140537";
 (function(){ if(!/github\.io$/.test(location.hostname)) return; window.addEventListener("load", function(){ fetch(location.pathname + "?nocache=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.text(); }).then(function(t){ var m = t.match(/const BUILD = "([^"]+)"/); if (!m || m[1] === BUILD) return; try { if (sessionStorage.getItem("spt-build") === m[1]) return; sessionStorage.setItem("spt-build", m[1]); } catch (e) {} location.replace(location.pathname + "?v=" + m[1] + location.hash); }).catch(function(){}); }); })();</script>
 <title>Испанский по плейлистам</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18510,7 +18510,8 @@ const I18N_EN = {
 "Видео пройдено. Следующий уровень открыт.": "Video passed. The next level is open.",
 "Час разговорной практики (speaking) вне приложения по теме блока: ": "One hour of speaking practice outside the app on the block topic: ",
 " Показать все уроки — только посмотреть, до перезагрузки страницы (автор советует идти строго по порядку)": " Show all lessons — just to look, until the page is reloaded (the author recommends going strictly in order)",
-"холодильник (также: la nevera)": "refrigerator (also: la nevera)"
+"холодильник (также: la nevera)": "refrigerator (also: la nevera)",
+"Верно, но проверьте написание имени": "Correct, but check the spelling of the name"
 };
 
 // ---- i18n.js ----
@@ -18890,6 +18891,17 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
     for (const e of alts) if (strip(norm(e)) === strip(a)) return { res: 'accent', match: e };
     // «El tiene…» без ударения: это местоимение él, а не артикль — засчитываем с подсказкой про ударение
     if (/^\s*el\s/i.test(answer)) { const a2 = norm(answer.replace(/^\s*el\s/i, 'él ')); for (const e of alts) if (strip(norm(e)) === strip(a2)) return { res: 'accent', match: e }; }
+    // опечатка в имени собственном (Colo-Colo, Valparaíso, Pablo…): остальное верно — засчитываем с пометкой
+    const lev = (x, y) => { const d = Array.from({ length: y.length + 1 }, (_, j) => j); for (let i = 1; i <= x.length; i++) { let p = d[0]; d[0] = i; for (let j = 1; j <= y.length; j++) { const t = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, p + (x[i - 1] === y[j - 1] ? 0 : 1)); p = t; } } return d[y.length]; };
+    const aw = strip(a).split(' ');
+    for (const e of alts) {
+      const proper = e.replace(/[¿¡?!.,;:"«»()…]/g, ' ').split(/\s+/).filter(Boolean).slice(1).filter(w => /^[A-ZÁÉÍÓÚÑ]/.test(w)).map(w => strip(w.toLowerCase()));
+      const ew = strip(norm(e)).split(' ');
+      if (!proper.length || ew.length !== aw.length) continue;
+      let ok = true, fixed = false;
+      for (let i = 0; i < ew.length && ok; i++) if (ew[i] !== aw[i]) { if (proper.includes(ew[i]) && lev(ew[i], aw[i]) <= 2) fixed = true; else ok = false; }
+      if (ok && fixed) return { res: 'accent', match: e, name: true };
+    }
     return { res: 'bad', match: alts[0] };
   }
   const first = s => s.split('|')[0].trim();
@@ -19441,7 +19453,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
           }
           res.hidden = false; res.innerHTML = '';
           res.className = 'result ' + c.res;
-          res.append(el('div', { class: 'verdict' }, c.res === 'ok' ? T('Верно') : c.res === 'accent' ? T('Верно, но проверьте ударения') : T('Неверно')),
+          res.append(el('div', { class: 'verdict' }, c.res === 'ok' ? T('Верно') : c.name ? T('Верно, но проверьте написание имени') : c.res === 'accent' ? T('Верно, но проверьте ударения') : T('Неверно')),
             t.kind === 'tf' ? el('div', { class: 'es' }, T('Ответ: ') + tfLabel(t.es)) : RQ.has(t.kind) ? el('div', { class: 'es' }, T('Ответ: ') + first(t.es)) : el('div', { class: 'es' }, first(t.es), speakBtn(t.speak || first(t.es))));
           if (t.kind === 'listen') res.append(el('small', { class: 'alts' }, t.words));
           if (weakNote) res.append(el('small', { class: 'weaknote' }, weakNote));
