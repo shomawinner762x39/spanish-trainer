@@ -1,5 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Испанский">
-<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/"; const BUILD = "20261007140537";
+<script>const FIREBASE_PROJECT = "spanish-trainer-dbb9b"; const AUDIO_URL = "audio/"; const BUILD = "20261111170528";
 (function(){ if(!/github\.io$/.test(location.hostname)) return; window.addEventListener("load", function(){ fetch(location.pathname + "?nocache=" + Date.now(), {cache: "no-store"}).then(function(r){ return r.text(); }).then(function(t){ var m = t.match(/const BUILD = "([^"]+)"/); if (!m || m[1] === BUILD) return; try { if (sessionStorage.getItem("spt-build") === m[1]) return; sessionStorage.setItem("spt-build", m[1]); } catch (e) {} location.replace(location.pathname + "?v=" + m[1] + location.hash); }).catch(function(){}); }); })();</script>
 <title>Испанский по плейлистам</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -223,6 +223,8 @@ i.cl { background: var(--line); } i.cx { background: transparent; }
 .langsw { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .langsw button { border: 0; background: transparent; color: var(--muted); font: 600 13px var(--body); padding: 6px 12px; cursor: pointer; }
 .langsw button.on { background: var(--accent); color: var(--accent-ink); }
+.mute { border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 16px; line-height: 1; padding: 6px 10px; cursor: pointer; }
+.mute[aria-pressed="true"] { opacity: .75; background: color-mix(in srgb, var(--bad) 18%, transparent); }
 .prompt.num, .prompt.listen { display: grid; gap: 6px; justify-items: start; }
 .prompt.num .big { font: 700 34px var(--mono); letter-spacing: .02em; }
 .prompt.num small, .prompt.listen small { color: var(--muted); font-size: 13px; }
@@ -18511,7 +18513,9 @@ const I18N_EN = {
 "Час разговорной практики (speaking) вне приложения по теме блока: ": "One hour of speaking practice outside the app on the block topic: ",
 " Показать все уроки — только посмотреть, до перезагрузки страницы (автор советует идти строго по порядку)": " Show all lessons — just to look, until the page is reloaded (the author recommends going strictly in order)",
 "холодильник (также: la nevera)": "refrigerator (also: la nevera)",
-"Верно, но проверьте написание имени": "Correct, but check the spelling of the name"
+"Верно, но проверьте написание имени": "Correct, but check the spelling of the name",
+"Озвучка выключена — нажмите, чтобы включить": "Voice is off — tap to turn it on",
+"Озвучка включена — нажмите, чтобы выключить": "Voice is on — tap to turn it off"
 };
 
 // ---- i18n.js ----
@@ -18918,6 +18922,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   // Если записи нет или она недоступна — говорит голос браузера.
   const AUDIO_BASE = (typeof AUDIO_URL !== 'undefined') ? AUDIO_URL : 'https://shomawinner762x39.github.io/spanish-trainer/audio/';
   let audioIdx = null, actx = null, playing = null, sayToken = 0;
+  let muted = false; try { muted = localStorage.getItem('spt-mute') === '1'; } catch (e) {}
   const bundles = new Map();
   const cleanSay = t => t.replace(/[—]/g, '').trim();
   function ensureCtx() {
@@ -19434,7 +19439,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
         })()
         : el('div', { class: 'prompt' }, t.ru);
       if (!RQ.has(t.kind)) prefetch(t.speak || first(t.es));
-      if (t.kind === 'listen') setTimeout(() => say(t.speak), 150);
+      if (t.kind === 'listen' && !muted) setTimeout(() => say(t.speak), 150);
       const inp = el('input', { type: 'text', id: 'ans', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t.kind === 'form' ? T('форма глагола') : T('по-испански…') });
       const res = el('div', { class: 'result', hidden: true });
       const btn = el('button', { class: 'primary', type: 'button' }, T('Проверить'));
@@ -19464,7 +19469,7 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
             // повтор через несколько заданий, как «эхо» у автора
             if (retries < total && t.kind !== 'tf' && t.kind !== 'mc') { queue.splice(Math.min(pos + 4, queue.length), 0, Object.assign({}, t)); retries++; }
           }
-          if (!RQ.has(t.kind)) say(t.speak || first(t.es));
+          if (!RQ.has(t.kind) && !muted) say(t.speak || first(t.es));
           if (tfRow) { tfRow.remove(); btn.hidden = false; }
           inp.disabled = true; btn.textContent = T('Дальше'); btn.focus();
         } else { pos++; next(); }
@@ -19738,6 +19743,11 @@ if (LANG === 'en' && typeof I18N_EN !== 'undefined') {
   $('#sync').textContent = T('Прогресс хранится в этом браузере');
   $('aside .label').textContent = T('Уровни');
   $('#levels').setAttribute('aria-label', T('Уровни курса'));
+  // 🔊/🔇: автоматическая озвучка после ответа (кнопки ▶ работают всегда); запоминается на этом устройстве
+  const mbtn = el('button', { id: 'mute', class: 'mute', type: 'button' });
+  const drawMute = () => { mbtn.textContent = muted ? '🔇' : '🔊'; mbtn.title = muted ? T('Озвучка выключена — нажмите, чтобы включить') : T('Озвучка включена — нажмите, чтобы выключить'); mbtn.setAttribute('aria-pressed', muted ? 'true' : 'false'); };
+  mbtn.onclick = () => { muted = !muted; try { localStorage.setItem('spt-mute', muted ? '1' : '0'); } catch (e) {} if (muted) stopSpeech(); drawMute(); };
+  drawMute(); $('#langsw').after(mbtn);
   $('#langsw').append(...[['ru', 'RU'], ['en', 'EN']].map(([l, n]) => el('button', { type: 'button', class: LANG === l ? 'on' : '', 'aria-pressed': LANG === l ? 'true' : 'false', onclick: () => { if (LANG !== l) setLang(l); } }, n)));
   state = mergeState(state, null);
   renderNav(); renderHome(); initDb(); drawClock(Date.now());
